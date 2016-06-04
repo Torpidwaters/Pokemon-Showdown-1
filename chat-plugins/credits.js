@@ -48,6 +48,7 @@ function writeMoney(userid, amount, callback) {
 			});
 		}
 	});
+	this.privateModCommand(userid + " was given " + amount + " credits.");
 }
 function logTransaction(message) {
 	if (!message) return false;
