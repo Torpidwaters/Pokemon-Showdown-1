@@ -565,7 +565,7 @@ exports.commands = {
 		Wisp.database.all("SELECT SUM(bucks) FROM users;", (err, rows) => {
 			if (err) return console.log("bucks1: " + err);
 			let totalBucks = rows[0]['SUM(bucks)'];
-			Wisp.database.all("SELECT userid, SUM(bucks) AS total FROM users GROUP BY bucks HAVING TOTAL > 0;", (err, rows) => {
+			Wisp.database.all("SELECT bucks FROM users WHERE bucks > 0;", (err, rows) => {
 				if (err) return console.log("bucks2: " + err);
 				let userCount = rows.length;
 				Wisp.database.all("SELECT * FROM users ORDER BY bucks DESC LIMIT 1;", (err, rows) => {
