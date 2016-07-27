@@ -404,7 +404,7 @@ exports.commands = {
 		if (!target) return this.sendReply("/rmall [message] - Sends a pm to all users in the room.");
 		target = target.replace(/<(?:.|\n)*?>/gm, '');
 
-		let pmName = '~Room PM (' + Tools.escapeHTML(room.title) + ') [Do not reply]';
+		let pmName = '~Room PM (' + room.title + ') [Do not reply]';
 
 		for (let i in room.users) {
 			let message = '|pm|' + pmName + '|' + room.users[i].getIdentity() + '| ' + target;
