@@ -97,7 +97,7 @@ exports.BattleMovedex = {
 		id: "huh",
 		name: "HUH?",
 		pp: 20,
-		priority: 1,
+		priority: 0,
 		flags: {reflectable: 1, mirror: 1, authentic: 1},
 		forceSwitch: true,
 		onTryHit: function (target, source, move) {
@@ -109,7 +109,24 @@ exports.BattleMovedex = {
 		onHit: function (target, source, move) {
 			this.add('c|~Tailz|Don\'t ebully me');
 		},
-		secondary: false,
+		secondary: {
+			chance: 100,
+			self: {
+				onHit: function (pokemon, source) {
+					this.heal(pokemon.maxhp * 3 / 16, pokemon, pokemon, 'memes');
+					let stats = [];
+					let boost = {};
+					for (let statPlus in pokemon.boosts) {
+						if (pokemon.boosts[statPlus] < 6) {
+							stats.push(statPlus);
+						}
+					}
+					let randomStat = stats.length ? stats[this.random(stats.length)] : "";
+					if (randomStat) boost[randomStat] = 1;
+					this.boost(boost);
+				},
+			},
+		},
 		target: "normal",
 		type: "Normal",
 	},
