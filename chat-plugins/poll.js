@@ -35,6 +35,8 @@ class Poll {
 		let ip = user.latestIp;
 		let userid = user.userid;
 
+		if (!user.autoconfirmed) return user.sendTo(this.room, "You need to be autoconfirmed to vote in polls.");
+
 		if (userid in this.voters || ip in this.voterIps) {
 			return user.sendTo(this.room, "You have already voted for this poll.");
 		}
