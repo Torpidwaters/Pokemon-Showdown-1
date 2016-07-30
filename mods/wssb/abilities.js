@@ -374,20 +374,6 @@ exports.BattleAbilities = {
 				return null;
 			}
 		},
-		onModifyAtkPriority: 6,
-		onSourceModifyAtk: function (atk, attacker, defender, move) {
-			if (move.type === 'Ice' || move.type === 'Fire') {
-				this.debug('Bio Fuel weaken');
-				return this.chainModify(0.5);
-			}
-		},
-		onModifySpAPriority: 5,
-		onSourceModifySpA: function (atk, attacker, defender, move) {
-			if (move.type === 'Ice' || move.type === 'Fire') {
-				this.debug('Bio Fuel weaken');
-				return this.chainModify(0.5);
-			}
-		},
 		id: "biofuel",
 		name: "Bio-Fuel",
 	},
