@@ -9,7 +9,7 @@ function getFriends(userid, callback) {
 	if (!callback) return false;
 	userid = toId(userid);
 	Wisp.database.all("SELECT friend FROM friends WHERE userid=$userid", {$userid: userid}, function (err, rows) {
-		if (err) return console.log(err);
+		if (err) return console.log("getFriends: " + err);
 		let friends = [];
 		for (let row in rows) friends.push(rows[row].friend);
 		callback((friends.length > 0 ? friends : false));
@@ -20,7 +20,7 @@ function getAdded(userid, callback) {
 	if (!callback) return false;
 	userid = toId(userid);
 	Wisp.database.all("SELECT userid FROM friends WHERE friend=$userid", {$userid: userid}, function (err, rows) {
-		if (err) return console.log(err);
+		if (err) return console.log("getAdded: " + err);
 		let added = [];
 		for (let row in rows) added.push(rows[row].userid);
 		callback((added.length > 0 ? added : false));
@@ -31,7 +31,7 @@ function notifyStatus(userid, callback) {
 	if (!callback) return false;
 	userid = toId(userid);
 	Wisp.database.all("SELECT notifyStatus FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
-		if (err) return console.log(err);
+		if (err) return console.log("notifyStatus: " + err);
 		callback(rows[0].notifyStatus === 1);
 	});
 }
@@ -76,6 +76,7 @@ function showFriends(target, friends, self) {
 function friendsNotify(user, offline) {
 	user = toId(user);
 	Wisp.database.all("SELECT userid FROM friends WHERE friend=$userid", {$userid: user}, function (err, rows) {
+		if (err) return console.log("friendsNotify: " + err);
 		if (rows.length > 0) {
 			for (let row in rows) {
 				if (!Users(rows[row].userid) || !Users(rows[row].userid).connected) continue;
@@ -121,11 +122,13 @@ exports.commands = {
 			if (friend === user.userid) return this.errorReply("You can't add yourself as a friend.");
 
 			Wisp.database.all("SELECT * FROM friends WHERE userid=$userid", {$userid: user.userid}, (err, rows) => {
+				if (err) return console.log("/friend add (1): " + err);
 				if (rows.length >= MAX_FRIENDS) return this.errorReply("You may not add more than " + MAX_FRIENDS + " friends to your friends list.");
 				Wisp.database.all("SELECT * FROM friends WHERE userid=$userid AND friend=$friend", {$userid: user.userid, $friend: friend}, (err, rows) => {
+					if (err) return console.log("/friend add (2): " + err);
 					if (rows.length < 1) {
 						Wisp.database.run("INSERT INTO friends(userid, friend) VALUES ($userid, $friend)", {$userid: user.userid, $friend: friend}, err => {
-							if (err) return console.log(err);
+							if (err) return console.log("/friend add (3): " + err);
 							return this.sendReply("You've added " + friend + " to your friends list.");
 						});
 					} else {
@@ -145,11 +148,12 @@ exports.commands = {
 			if (friend.length > 19) return this.errorReply("Usernames may not be longer than 19 characters.");
 
 			Wisp.database.all("SELECT * FROM friends WHERE userid=$userid AND friend=$friend", {$userid: user.userid, $friend: friend}, (err, rows) => {
+				if (err) return console.log("/friend del (1): " + err);
 				if (rows.length < 1) {
 					return this.errorReply("That user is not on your friends list.");
 				} else {
 					Wisp.database.run("DELETE FROM friends WHERE userid=$userid AND friend=$friend", {$userid: user.userid, $friend: friend}, err => {
-						if (err) return console.log(err);
+						if (err) return console.log("/friend del (2): " + err);
 						return this.sendReply("That user has been removed from your friends list.");
 					});
 				}
@@ -164,6 +168,7 @@ exports.commands = {
 			}
 			delete user.confirmClearFriends;
 			Wisp.database.run("DELETE FROM friends WHERE userid=$userid", {$userid: user.userid}, err => {
+				if (err) return console.log("/friends clear: " + err);
 				return this.sendReply("You have cleared your friends list.");
 			});
 		},
@@ -172,14 +177,15 @@ exports.commands = {
 			notifyStatus(user.userid, status => {
 				let newStatus = (status ? 0 : 1);
 				Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: user.userid}, (err, rows) => {
+					if (err) return console.log("/friends notify (1): " + err);
 					if (rows.length < 1) {
 						Wisp.database.run("INSERT INTO users(userid, notifystatus) VALUES ($userid, $status)", {$userid: user.userid, $status: newStatus}, err => {
-							if (err) return console.log(err);
+							if (err) return console.log("/friends notify (2): " + err);
 							return this.sendReply((newStatus === 1 ? "You will now be notified when your friends come online." : "You will no longer be notified when your friends come online."));
 						});
 					} else {
 						Wisp.database.run("UPDATE users SET notifyStatus=$status WHERE userid=$userid", {$status: newStatus, $userid: user.userid}, err => {
-							if (err) return console.log(err);
+							if (err) return console.log("/friends notify (3): " + err);
 							return this.sendReply((newStatus === 1 ? "You will now be notified when your friends come online." : "You will no longer be notified when your friends come online."));
 						});
 					}

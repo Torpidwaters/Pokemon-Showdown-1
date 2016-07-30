@@ -33,13 +33,14 @@ let Economy = global.Economy = {
 		if (!callback) return false;
 		userid = toId(userid);
 		Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
-			if (err) return console.log(err);
+			if (err) return console.log("readMoney: " + err);
 			callback(((rows[0] && rows[0].bucks) ? rows[0].bucks : 0));
 		});
 	},
 	writeMoney: function (userid, amount, callback) {
 		userid = toId(userid);
 		Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
+			if (err) return console.log("writeMoney: " + err);
 			if (rows.length < 1) {
 				Wisp.database.run("INSERT INTO users(userid, bucks) VALUES ($userid, $amount)", {$userid: userid, $amount: amount}, function (err) {
 					if (err) return console.log(err);

@@ -1185,6 +1185,7 @@ Object.assign(Wisp, {
 		if (userid.match(/^guest[0-9]/)) return false;
 		let date = Date.now();
 		Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
+			if (err) return console.log("updateSeen: " + err);
 			if (rows.length < 1) {
 				Wisp.database.run("INSERT INTO users(userid, name, lastSeen) VALUES ($userid, $name, $date)", {$userid: userid, $name: user, $date: date}, function (err) {
 					if (err) return console.log(err);
@@ -1199,7 +1200,7 @@ Object.assign(Wisp, {
 
 	lastSeen: function (userid, callback) {
 		Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
-			if (err) return console.log(err);
+			if (err) return console.log("lastSeen: " + err);
 			callback((rows[0] ? rows[0].lastSeen : false));
 		});
 	},
