@@ -68,7 +68,7 @@ let Economy = global.Economy = {
 
 exports.commands = {
 	moneylog: function (target, room, user) {
-		if (!this.can('bucks')) return false;
+		//if (!this.can('bucks')) return false;
 		if (!target) return this.sendReply("Usage: /moneylog [number] to view the last x lines OR /moneylog [text] to search for text.");
 		let word = false;
 		if (isNaN(Number(target))) word = true;
