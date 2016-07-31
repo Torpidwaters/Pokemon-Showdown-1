@@ -551,7 +551,7 @@ exports.commands = {
 		"/publicroom - Makes a room public. Requires: \u2605 & ~"],
 
 	modjoin: function (target, room, user) {
-		if (!target) return this.parse('/help modjoin');
+		if (!target) return this.sendReply("Modjoin is currently set to: " + (room.modjoin ? room.modjoin : false));
 		if (room.battle || room.isPersonal) {
 			if (!this.can('editroom', null, room)) return;
 		} else {
@@ -559,6 +559,7 @@ exports.commands = {
 		}
 		if (room.tour && !room.tour.modjoin) return this.errorReply("You can't do this in tournaments where modjoin is prohibited.");
 		if (target === 'off' || target === 'false') {
+			if (!room.modjoin) return this.errorReply("Modjoin is already turned off in this room.");
 			delete room.modjoin;
 			this.addModCommand("" + user.name + " turned off modjoin.");
 			if (room.chatRoomData) {
@@ -567,11 +568,13 @@ exports.commands = {
 			}
 		} else {
 			if (target === 'on' || target === 'true') {
+				if (room.modjoin === true) return this.errorReply("Modjoin is already turned on in this room.");
 				room.modjoin = true;
 				this.addModCommand("" + user.name + " turned on modjoin.");
 			} else if (target in Config.groups) {
 				if (room.battle && !this.can('makeroom')) return;
 				if (room.isPersonal && !user.can('makeroom') && target !== '+') return this.errorReply("/modjoin - Access denied from setting modjoin past + in group chats.");
+				if (room.modjoin === target) return this.errorReply("Modjoin is already set to " + target + " in this room.");
 				room.modjoin = target;
 				this.addModCommand("" + user.name + " set modjoin to " + target + ".");
 			} else {
@@ -2227,7 +2230,7 @@ exports.commands = {
 				if (!stdout) {
 					connection.popup("The modlog is empty. (Weird.)");
 				} else {
-					connection.popup("|wide||html|<p>The last " + lines + " lines of the Moderator Log of " + roomNames + ":</p>" + stdout);
+					connection.popup("|wide||html|<p>The last " + lines + " lines of the Moderator Log of " + roomNames + ".</p><p><small>[" + Tools.toTimeStamp(new Date(), {hour12: true}) + "] ← current server time</small></p>" + stdout);
 				}
 			} else {
 				if (!stdout) {
@@ -2235,7 +2238,7 @@ exports.commands = {
 					                 (strictMatch ? "" : " Add quotes to the search parameter to search for a phrase, rather than a user."));
 				} else {
 					connection.popup("|wide||html|<p>The last " + grepLimit + " logged actions containing " + target + " on " + roomNames + "." +
-					                 (strictMatch ? "" : " Add quotes to the search parameter to search for a phrase, rather than a user.") + "</p>" + stdout);
+					                 (strictMatch ? "" : " Add quotes to the search parameter to search for a phrase, rather than a user.") + "</p><p><small>[" + Tools.toTimeStamp(new Date(), {hour12: true}) + "] ← current server time</small></p>" + stdout);
 				}
 			}
 		});
@@ -2256,9 +2259,9 @@ exports.commands = {
 		let staff = Rooms('staff');
 		if (staff) staff.add("(" + user.name + " used /hotpatch " + target + ")").update();
 
-		if (target === 'chat' || target === 'commands') {
-			if (Monitor.hotpatchLockChat) return this.errorReply("Hotpatch has been disabled for chat. (" + Monitor.hotpatchLockChat + ")");
-			try {
+		try {
+			if (target === 'chat' || target === 'commands') {
+				if (Monitor.hotpatchLockChat) return this.errorReply("Hotpatch has been disabled for chat. (" + Monitor.hotpatchLockChat + ")");
 				const ProcessManagers = require('./process-manager').cache;
 				for (let PM of ProcessManagers.keys()) {
 					if (PM.isChatBased) {
@@ -2278,24 +2281,16 @@ exports.commands = {
 				Tournaments.tournaments = runningTournaments;
 
 				return this.sendReply("Chat commands have been hot-patched.");
-			} catch (e) {
-				return this.errorReply("Something failed while trying to hotpatch chat: \n" + e.stack);
-			}
-		} else if (target === 'tournaments') {
-			try {
+			} else if (target === 'tournaments') {
 				let runningTournaments = Tournaments.tournaments;
 				CommandParser.uncacheTree('./tournaments');
 				global.Tournaments = require('./tournaments');
 				Tournaments.tournaments = runningTournaments;
 				return this.sendReply("Tournaments have been hot-patched.");
-			} catch (e) {
-				return this.errorReply("Something failed while trying to hotpatch tournaments: \n" + e.stack);
-			}
-		} else if (target === 'battles') {
-			Simulator.SimulatorProcess.respawn();
-			return this.sendReply("Battles have been hotpatched. Any battles started after now will use the new code; however, in-progress battles will continue to use the old code.");
-		} else if (target === 'formats') {
-			try {
+			} else if (target === 'battles') {
+				Simulator.SimulatorProcess.respawn();
+				return this.sendReply("Battles have been hotpatched. Any battles started after now will use the new code; however, in-progress battles will continue to use the old code.");
+			} else if (target === 'formats') {
 				let toolsLoaded = !!Tools.isLoaded;
 				// uncache the tools.js dependency tree
 				CommandParser.uncacheTree('./tools.js');
@@ -2311,32 +2306,32 @@ exports.commands = {
 				Rooms.global.send(Rooms.global.formatListText);
 
 				return this.sendReply("Formats have been hotpatched.");
-			} catch (e) {
-				return this.errorReply("Something failed while trying to hotpatch formats: \n" + e.stack);
+			} else if (target === 'loginserver') {
+				fs.unwatchFile('./config/custom.css');
+				CommandParser.uncacheTree('./loginserver.js');
+				global.LoginServer = require('./loginserver.js');
+				return this.sendReply("The login server has been hotpatched. New login server requests will use the new code.");
+			} else if (target === 'learnsets' || target === 'validator') {
+				TeamValidator.PM.respawn();
+				return this.sendReply("The team validator has been hotpatched. Any battles started after now will have teams be validated according to the new code.");
+			} else if (target === 'punishments') {
+				delete require.cache[require.resolve('./punishments.js')];
+				global.Punishments = require('./punishments.js');
+				return this.sendReply("Punishments have been hotpatched.");
+			} else if (target.startsWith('disablechat')) {
+				if (Monitor.hotpatchLockChat) return this.errorReply("Hotpatch is already disabled.");
+				let reason = target.split(', ')[1];
+				if (!reason) return this.errorReply("Usage: /hotpatch disablechat, [reason]");
+				Monitor.hotpatchLockChat = reason;
+				return this.sendReply("You have disabled hotpatch until the next server restart.");
+			} else if (target.startsWith('disable')) {
+				let reason = target.split(', ')[1];
+				if (!reason) return this.errorReply("Usage: /hotpatch disable, [reason]");
+				Monitor.hotpatchLock = reason;
+				return this.sendReply("You have disabled hotpatch until the next server restart.");
 			}
-		} else if (target === 'loginserver') {
-			fs.unwatchFile('./config/custom.css');
-			CommandParser.uncacheTree('./loginserver.js');
-			global.LoginServer = require('./loginserver.js');
-			return this.sendReply("The login server has been hotpatched. New login server requests will use the new code.");
-		} else if (target === 'learnsets' || target === 'validator') {
-			TeamValidator.PM.respawn();
-			return this.sendReply("The team validator has been hotpatched. Any battles started after now will have teams be validated according to the new code.");
-		} else if (target === 'punishments') {
-			delete require.cache[require.resolve('./punishments.js')];
-			global.Punishments = require('./punishments.js');
-			return this.sendReply("Punishments have been hotpatched.");
-		} else if (target.startsWith('disablechat')) {
-			if (Monitor.hotpatchLockChat) return this.errorReply("Hotpatch is already disabled.");
-			let reason = target.split(', ')[1];
-			if (!reason) return this.errorReply("Usage: /hotpatch disablechat, [reason]");
-			Monitor.hotpatchLockChat = reason;
-			return this.sendReply("You have disabled hotpatch until the next server restart.");
-		} else if (target.startsWith('disable')) {
-			let reason = target.split(', ')[1];
-			if (!reason) return this.errorReply("Usage: /hotpatch disable, [reason]");
-			Monitor.hotpatchLock = reason;
-			return this.sendReply("You have disabled hotpatch until the next server restart.");
+		} catch (e) {
+			return this.errorReply("Something failed while trying to hotpatch " + target + ": \n" + e.stack);
 		}
 		this.errorReply("Your hot-patch command was unrecognized.");
 	},
