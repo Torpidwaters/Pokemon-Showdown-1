@@ -69,7 +69,7 @@ class Poll {
 		this.options.forEach((option, number) => {
 			count++;
 			if (count === 1) output += "<tr>";
-			output += '<td class="poll-td"><button style="border-radius: 20px; transition-duration: 0.5s; transition-timing-function: linear;" value="/poll vote ' + number + '" name="send" title="Vote for ' + number + '. ' + Tools.escapeHTML(option.name) + '">' + Tools.escapeHTML(option.name) + '</button></td>';
+			output += '<td class="poll-td"><button style="border-radius: 20px; transition-duration: 0.5s; transition-timing-function: linear;" value="/poll vote ' + number + '" name="send" title="Vote for ' + number + '. ' + Tools.escapeHTML(option.name) + '"' + (option.void ? ' disabled' : '') + '>' + Tools.escapeHTML(option.name) + '</button></td>';
 			if (count >= 4) {
 				output += "</tr>";
 				count = 0;
@@ -116,7 +116,7 @@ class Poll {
 		return Tools.escapeHTML(option.name);
 	}
 
-	update() {
+	update(force) {
 		let results = [];
 
 		for (let i = 0; i <= this.options.size; i++) {
@@ -130,6 +130,8 @@ class Poll {
 				user.sendTo(this.room, '|uhtmlchange|poll' + this.room.pollNumber + '|' + results[this.voters[user.userid]]);
 			} else if (user.latestIp in this.voterIps) {
 				user.sendTo(this.room, '|uhtmlchange|poll' + this.room.pollNumber + '|' + results[this.voterIps[user.latestIp]]);
+			} else if (force) {
+				user.sendTo(this.room, '|uhtmlchange|poll' + this.room.pollNumber + '|' + this.generateVotes());
 			}
 		}
 	}
@@ -255,10 +257,43 @@ exports.commands = {
 			if (isNaN(parsed)) return this.errorReply("To vote, specify the number of the option.");
 
 			if (!room.poll.options.has(parsed)) return this.sendReply("Option not in poll.");
+			if (room.poll.options.get(parsed).void) return this.sendReply("That option is void.");
 
 			room.poll.vote(user, parsed);
 		},
 		votehelp: ["/poll vote [number] - Votes for option [number]."],
+
+		void: function (target, room, user) {
+			if (!room.poll) return this.errorReply("There is no poll running in this room.");
+			if (!target) return this.parse('/help poll void');
+			if (!this.can('minigame', null, room)) return false;
+			let targetSplit = target.split(',');
+			for (let u in targetSplit) targetSplit[u] = targetSplit[u].trim();
+
+			if (targetSplit.length > 10) return this.errorReply("You can't void more than 10 options at a time.");
+
+			let values = [];
+			let count = 1;
+			let voided = [];
+			let invalid = [];
+
+			room.poll.options.forEach(function (obj) {
+				values[toId(obj.name)] = count;
+				count++;
+			});
+			for (let u in targetSplit) {
+				if (!values[toId(targetSplit[u])]) {
+					invalid.push(targetSplit[u]);
+					continue;
+				}
+				room.poll.options.get(values[toId(targetSplit[u])]).void = true;
+				voided.push(targetSplit[u]);
+			}
+			room.poll.update(true);
+			if (invalid.length > 0) this.sendReply("The following options are not valid options to void: " + invalid.join(', '));
+			if (voided.length > 0) this.addModCommand(user.name + " has voided the following poll options: " + voided.join(', '));
+		},
+		voidhelp: ["/poll void [option] - Voids a poll option. You can specify multiple options by seperating them with a comma."],
 
 		timer: function (target, room, user) {
 			if (!room.poll) return this.errorReply("There is no poll running in this room.");
