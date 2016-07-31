@@ -39,6 +39,7 @@ let Room = (() => {
 		this.muteQueue = [];
 		this.muteTimer = null;
 		this.messageCount = 0;
+		this.declareIds = [];
 	}
 	Room.prototype.title = "";
 	Room.prototype.type = 'chat';
@@ -345,6 +346,8 @@ let Room = (() => {
 let GlobalRoom = (() => {
 	function GlobalRoom(roomid) {
 		this.id = roomid;
+
+		this.declareIds = [];
 
 		// init battle rooms
 		this.battleCount = 0;

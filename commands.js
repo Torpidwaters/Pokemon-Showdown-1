@@ -1831,17 +1831,48 @@ exports.commands = {
 	},
 	modchathelp: ["/modchat [off/autoconfirmed/+/%/@/*/#/&/~] - Set the level of moderated chat. Requires: *, @ for off/autoconfirmed/+ options, # & ~ for all the options"],
 
+	cleardeclare: function (target, room, user) {
+		if (!target) return this.parse('/help cleardeclare');
+		target = target.trim();
+		if (!room.declareIds.includes(target) && !Rooms.global.declareIds.includes(target)) return this.errorReply("There's no declare with that id.");
+		if (Rooms.global.declareIds.includes(target) && !this.can('gdeclare')) return false;
+		if (room.declareIds.includes(target) && !this.can('declare', null, room)) return false;
+
+		if (Rooms.global.declareIds.includes(target)) {
+			for (let id in Rooms.rooms) {
+				if (id !== 'global') Rooms.rooms[id].add('|uhtmlchange|' + target + '|').update();
+			}
+			Rooms.global.declareIds.splice(Rooms.global.declareIds.indexOf(target), 1);
+		} else {
+			room.add('|uhtmlchange|' + target + '|').update();
+			room.declareIds.splice(room.declareIds.indexOf(target), 1);
+		}
+	},
+
+	clearalldeclares: function (target, room, user) {
+		if (!this.can('gdeclare')) return false;
+		if (Rooms.global.declareIds.length < 1) return this.errorReply("There's no global declares to clear.");
+		for (let u in Rooms.global.declareIds) {
+			for (let id in Rooms.rooms) {
+				if (id !== 'global') Rooms.rooms[id].add('|uhtmlchange|' + Rooms.global.declareIds[u] + '|').update();
+			}
+		}
+		Rooms.global.declareIds = [];
+	},
+
 	declare: function (target, room, user) {
 		if (!target) return this.parse('/help declare');
 		if (!this.can('declare', null, room)) return false;
 		if (!this.canTalk()) return;
+		let id = user.userid + "-" + Wisp.randomString(5);
+		room.declareIds.push(id);
 
-		this.add('|raw|<div class="broadcast-blue"><b>' + target + '</b></div>');
-		this.logModCommand(user.name + " declared " + target);
+		this.add('|uhtml|' + id + '|<div class="broadcast-blue"><b>' + target + '</b></div>');
+		this.logModCommand(user.name + " declared " + target + "(id: " + id + ")");
 	},
 	declarehelp: ["/declare [message] - Anonymously announces a message. Requires: # * & ~"],
 
-	htmldeclare: function (target, room, user) {
+	/*htmldeclare: function (target, room, user) {
 		if (!target) return this.parse('/help htmldeclare');
 		if (!this.can('gdeclare', null, room)) return false;
 		if (!this.canTalk()) return;
@@ -1851,7 +1882,7 @@ exports.commands = {
 		this.add('|raw|<div class="broadcast-blue"><b>' + target + '</b></div>');
 		this.logModCommand(user.name + " declared " + target);
 	},
-	htmldeclarehelp: ["/htmldeclare [message] - Anonymously announces a message using safe HTML. Requires: ~"],
+	htmldeclarehelp: ["/htmldeclare [message] - Anonymously announces a message using safe HTML. Requires: ~"],*/
 
 	gdeclare: 'globaldeclare',
 	globaldeclare: function (target, room, user) {
@@ -1859,11 +1890,13 @@ exports.commands = {
 		if (!this.can('gdeclare')) return false;
 		target = this.canHTML(target);
 		if (!target) return;
+		let declareId = user.userid + "-" + Wisp.randomString(5);
+		Rooms.global.declareIds.push(declareId);
 
 		for (let id in Rooms.rooms) {
-			if (id !== 'global' && !Rooms.rooms[id].disableGlobalDeclares) Rooms.rooms[id].addRaw('<div class="broadcast-blue"><b>' + target + '</b></div>').update();
+			if (id !== 'global' && !Rooms.rooms[id].disableGlobalDeclares) Rooms.rooms[id].add('|uhtml|' + declareId + '|<div class="broadcast-blue"><b>' + target + '</b></div>').update();
 		}
-		this.logModCommand(user.name + " globally declared " + target);
+		this.logModCommand(user.name + " globally declared " + target + "(id: " + declareId + ")");
 	},
 	globaldeclarehelp: ["/globaldeclare [message] - Anonymously announces a message to every room on the server. Requires: ~"],
 
@@ -1873,11 +1906,13 @@ exports.commands = {
 		if (!this.can('gdeclare')) return false;
 		target = this.canHTML(target);
 		if (!target) return;
+		let declareId = user.userid + "-" + Wisp.randomString(5);
+		Rooms.global.declareIds.push(declareId);
 
 		for (let id in Rooms.rooms) {
-			if (id !== 'global' && !Rooms.rooms[id].disableGlobalDeclares) if (Rooms.rooms[id].type !== 'battle') Rooms.rooms[id].addRaw('<div class="broadcast-blue"><b>' + target + '</b></div>').update();
+			if (id !== 'global' && !Rooms.rooms[id].disableGlobalDeclares) if (Rooms.rooms[id].type !== 'battle') Rooms.rooms[id].add('|uhtml|' + declareId + '|<div class="broadcast-blue"><b>' + target + '</b></div>').update();
 		}
-		this.logModCommand(user.name + " globally declared (chat level) " + target);
+		this.logModCommand(user.name + " globally declared (chat level) " + target + "(id: " + declareId + ")");
 	},
 	chatdeclarehelp: ["/cdeclare [message] - Anonymously announces a message to all chatrooms on the server. Requires: ~"],
 
