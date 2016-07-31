@@ -114,7 +114,7 @@ exports.commands = {
 		if (!this.can('bucks')) return false;
 		if (!target) return this.sendReply("Usage: /givebucks [user], [amount]");
 		let splitTarget = target.split(',');
-		if (!splitTarget[1]) return this.sendReply("Usage: /givebucks [user], [amount]");
+		if (!splitTarget[2]) return this.sendReply("Usage: /givebucks [user], [amount], [reason]");
 		for (let u in splitTarget) splitTarget[u] = splitTarget[u].trim();
 
 		let targetUser = splitTarget[0];
@@ -126,6 +126,10 @@ exports.commands = {
 		if (amount > 1000) return this.sendReply("/givebucks - You can't give more than 1000 bucks at a time.");
 		if (amount < 1) return this.sendReply("/givebucks - You can't give less than one buck.");
 
+		let reason = splitTarget[2];
+		if (reason.length > 100) return this.errorReply("Reason may not be longer than 100 characters.");
+		if (toId(reason).length < 1) return this.errorReply("Please specify a reason to give bucks.");
+
 		Economy.writeMoney(targetUser, amount, () => {
 			Economy.readMoney(targetUser, newAmount => {
 				if (Users(targetUser) && Users(targetUser).connected) {
@@ -133,7 +137,7 @@ exports.commands = {
 					' from ' + Wisp.nameColor(user.userid, true) + '.');
 				}
 				this.sendReply(targetUser + " has received " + amount + ((amount === 1) ? " buck." : " bucks."));
-				Economy.logTransaction(user.name + " has given " + amount + ((amount === 1) ? " buck " : " bucks ") + " to " + targetUser + ". They now have " + newAmount + (newAmount === 1 ? " buck." : " bucks."));
+				Economy.logTransaction(user.name + " has given " + amount + ((amount === 1) ? " buck " : " bucks ") + " to " + targetUser + ". (Reason: " + reason + ") They now have " + newAmount + (newAmount === 1 ? " buck." : " bucks."));
 			});
 		});
 	},
@@ -143,7 +147,7 @@ exports.commands = {
 		if (!this.can('bucks')) return false;
 		if (!target) return this.sendReply("Usage: /takebucks [user], [amount]");
 		let splitTarget = target.split(',');
-		if (!splitTarget[1]) return this.sendReply("Usage: /takebucks [user], [amount]");
+		if (!splitTarget[2]) return this.sendReply("Usage: /takebucks [user], [amount], [reason]");
 		for (let u in splitTarget) splitTarget[u] = splitTarget[u].trim();
 
 		let targetUser = splitTarget[0];
@@ -155,6 +159,10 @@ exports.commands = {
 		if (amount > 1000) return this.sendReply("/takebucks - You can't take more than 1000 bucks at a time.");
 		if (amount < 1) return this.sendReply("/takebucks - You can't take less than one buck.");
 
+		let reason = splitTarget[2];
+		if (reason.length > 100) return this.errorReply("Reason may not be longer than 100 characters.");
+		if (toId(reason).length < 1) return this.errorReply("Please specify a reason to remove bucks.");
+
 		Economy.writeMoney(targetUser, -amount, () => {
 			Economy.readMoney(targetUser, newAmount => {
 				if (Users(targetUser) && Users(targetUser).connected) {
@@ -162,7 +170,7 @@ exports.commands = {
 					' from you.<br />');
 				}
 				this.sendReply("You removed " + amount + ((amount === 1) ? " buck " : " bucks ") + " from " + Tools.escapeHTML(targetUser));
-				Economy.logTransaction(user.name + " has taken " + amount + ((amount === 1) ? " buck " : " bucks ") + " from " + targetUser + ". They now have " + newAmount + (newAmount === 1 ? " buck." : " bucks."));
+				Economy.logTransaction(user.name + " has taken " + amount + ((amount === 1) ? " buck " : " bucks ") + " from " + targetUser + ". (Reason: " + reason + ") They now have " + newAmount + (newAmount === 1 ? " buck." : " bucks."));
 			});
 		});
 	},
