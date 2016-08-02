@@ -1857,7 +1857,7 @@ exports.commands = {
 		if (Rooms.global.declareIds.length < 1) return this.errorReply("There's no global declares to clear.");
 		for (let u in Rooms.global.declareIds) {
 			for (let id in Rooms.rooms) {
-				if (id !== 'global') Rooms.rooms[id].add('|uhtmlchange|' + Rooms.global.declareIds[u] + '|').update();
+				if (id !== 'global' && Rooms.rooms[id].type !== 'battle') Rooms.rooms[id].add('|uhtmlchange|' + Rooms.global.declareIds[u] + '|').update();
 			}
 		}
 		Rooms.global.declareIds = [];
@@ -1870,7 +1870,7 @@ exports.commands = {
 		let id = user.userid + "-" + Wisp.randomString(5);
 		room.declareIds.push(id);
 
-		this.add('|uhtml|' + id + '|<div class="broadcast-blue"><b>' + target + '</b></div>');
+		this.add((room.type === "battle" ? '|raw|' : '|uhtml|' + id + '|') + '<div class="broadcast-blue"><b>' + target + '</b></div>');
 		this.logModCommand(user.name + " declared " + target + "(id: " + id + ")");
 	},
 	declarehelp: ["/declare [message] - Anonymously announces a message. Requires: # * & ~"],
@@ -1897,7 +1897,7 @@ exports.commands = {
 		Rooms.global.declareIds.push(declareId);
 
 		for (let id in Rooms.rooms) {
-			if (id !== 'global' && !Rooms.rooms[id].disableGlobalDeclares) Rooms.rooms[id].add('|uhtml|' + declareId + '|<div class="broadcast-blue"><b>' + target + '</b></div>').update();
+			if (id !== 'global' && !Rooms.rooms[id].disableGlobalDeclares) Rooms.rooms[id].add((Rooms.rooms[id].type === "battle" ? '|raw|' : '|uhtml|' + declareId + '|') + '<div class="broadcast-blue"><b>' + target + '</b></div>').update();
 		}
 		this.logModCommand(user.name + " globally declared " + target + "(id: " + declareId + ")");
 	},
