@@ -68,6 +68,7 @@ exports.commands = {
 		let parts = target.split(',');
 		let cmd = parts[0].trim().toLowerCase();
 		let hash;
+		let userid;
 
 		if (cmd in {'':1, show:1, view:1, display:1}) {
 			let message = "";
@@ -79,7 +80,6 @@ exports.commands = {
 
 		switch (cmd) {
 		case 'set':
-			let userid;
 			userid = toId(parts[1]);
 			let targetUser = Users.getExact(userid);
 			let avatar = parts.slice(2).join(',').trim();
