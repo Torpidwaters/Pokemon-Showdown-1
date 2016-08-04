@@ -666,7 +666,7 @@ exports.commands = {
 		let userid = toId(username);
 		let avatar = (Config.customavatars[userid] ? "http://" + serverIp + ":" + Config.port + "/avatars/" + Config.customavatars[userid] : "http://play.pokemonshowdown.com/sprites/trainers/167.png");
 		if (targetUser) {
-			avatar = (isNaN(targetUser.avatar) ? "http://" + serverIp + ":" + Config.port + "/avatars/" + targetUser.avatar : "http://play.pokemonshowdown.com/sprites/trainers/" + targetUser.avatar + ".png");
+			avatar = (isNaN(targetUser.avatar) && targetUser.avatar[0] !== '#' ? "http://" + serverIp + ":" + Config.port + "/avatars/" + targetUser.avatar : "http://play.pokemonshowdown.com/sprites/trainers/" + toId(targetUser.avatar) + ".png");
 		}
 		let badges = () => {
 			let badges = Db('userBadges').get(userid);
