@@ -8,12 +8,17 @@ Wisp.database = new sqlite3.Database('config/users.db', function () {
 const fs = require('fs');
 const moment = require('moment');
 const geoip = require('geoip-ultralight');
+const schedule = require('node-schedule');
+
+const MAX_TICKETS = 5;
+
 geoip.startWatchingDataUpdate();
 
 let shopTitle = 'Wisp Shop';
 let serverIp = '158.69.196.64';
 
 let prices = {
+	"ticket": 1,
 	"symbol": 5,
 	"fix": 10,
 	"declare": 20,
@@ -27,6 +32,12 @@ let prices = {
 	"icon": 100,
 	"color": 150,
 };
+
+let lottery = [];
+
+try {
+	lottery = fs.readFileSync('config/lottery.csv', 'utf8').split(',');
+} catch (e) {}
 
 let Economy = global.Economy = {
 	readMoney: function (userid, callback) {
@@ -65,6 +76,30 @@ let Economy = global.Economy = {
 		fs.appendFile('logs/dice.log', '[' + new Date().toUTCString() + '] ' + message + '\n');
 	},
 };
+
+schedule.scheduleJob('0 18 * * 0,3', function () {
+	if (lottery.length < 1) return;
+	let winner = lottery[Math.floor(Math.random() * lottery.length)];
+	let amount = (lottery.length * prices['ticket']) - Math.ceil((lottery.length * prices['ticket']) * 0.10);
+	if (amount === 0) amount = 1;
+	Economy.writeMoney(winner, amount, function () {
+		Economy.logTransaction(winner + " has won " + amount + (amount === 1 ? " buck" : " bucks") + " from the lottery.");
+		if (Users(winner) && Users(winner).connected) {
+			Users(winner).send("|popup||modal|Congratulations, you have won " + amount + (amount === 1 ? " buck" : " bucks") + " from the lottery.");
+		} else {
+			if (!Wisp.tells[winner]) Wisp.tells[winner] = {};
+			if (!Wisp.tells[winner]['server']) Wisp.tells[winner]['server'] = [];
+			Wisp.tells[winner]['server'].push('<span style = "color:gray;"><i>(Sent by the Server on ' + moment().format("ddd, MMMM DD, YYYY HH:mmA ZZ") + ')</i></span><br />' +
+			'Congratulations, you have won ' + amount + (amount === 1 ? ' buck' : ' bucks') + ' from the lottery.');
+		}
+		for (let u in Rooms.global.users) {
+			if (!Users(u) || !Users(u).connected) continue;
+			Users(u).send("|pm|~Lottery|~|/html Congratulations to " + Wisp.nameColor(winner, true) + " for winning todays lottery. They have won " + amount + " " + (amount === 1 ? "buck." : "bucks."));
+		}
+		lottery = [];
+		fs.writeFileSync('config/lottery.csv', '');
+	});
+});
 
 exports.commands = {
 	moneylog: function (target, room, user) {
@@ -404,6 +439,23 @@ exports.commands = {
 					});
 				});
 				break;
+			case 'ticket':
+				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a ticket.");
+				let count = 0;
+				for (let u in lottery) {
+					if (lottery[u] === user.userid) count++;
+				}
+				if (count >= MAX_TICKETS) return this.sendReply("You can't buy more than " + MAX_TICKETS + " tickets per lottery draw.");
+				matched = true;
+				Economy.writeMoney(user.userid, prices[itemid] * -1, () => {
+					Economy.readMoney(user.userid, amount => {
+						count++;
+						lottery.push(user.userid);
+						fs.writeFileSync('config/lottery.csv', lottery.join(','));
+						Economy.logTransaction(user.name + " has purchased a lottery ticket for " + prices[itemid] + " bucks. They now have " + amount + (amount === 1 ? " buck." : " bucks."));
+						this.sendReply("You have purchased a ticket for the next lottery draw. You now have " + count + (count === 1 ? " ticket." : " tickets."));
+					});
+				});
 			}
 
 			if (matched) {
@@ -415,6 +467,7 @@ exports.commands = {
 	shop: function (target, room, user) {
 		if (!this.runBroadcast()) return;
 		this.sendReplyBox('<center><h4><b><u>' + shopTitle + '</u></b></h4><div style="max-height: 310px; overflow-y: scroll;"><table style="width: 100%; border-collapse: collapse;"><tr><th style="background: #2980B9; border: 1px solid #1d6391; border-bottom-width: 10px; color: #FFF; padding: 10px; font-size: 13pt;">Item</th><th style="background: #C0392B; border: 1px solid #a12f23; border-bottom-width: 10px; color: #FFF; padding: 10px; font-size: 13pt;">Description</th><th style="background: #F39C12; border: 1px solid #cd8109; border-bottom-width: 10px; color: #FFF; padding: 10px; font-size: 13pt;">Price</th></tr>' +
+			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy ticket">Ticket</button></td><td class="shop-td des">Buys a ticket for the lottery. Lottery is drawn every Sunday and Wednesday at 6PM EST.</td><td class="shop-td pri">' + prices['ticket'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy symbol">Custom Symbol</button></td><td class="shop-td des">Buys a custom symbol to go in front of your name. (Temporary until restart)</td><td class="shop-td pri">' + prices['symbol'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy fix">Fix</button></td><td class="shop-td des">Buys the ability to alter your current custom avatar or infobox (don\'t buy if you have neither)!</td><td class="shop-td pri">' + prices['fix'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy declare">Declare</button></td><td class="shop-td des">You get the ability to have a message declared in the lobby. This can be used for league advertisement (not server)</td><td class="shop-td pri">' + prices['declare'] + '</td></tr>' +

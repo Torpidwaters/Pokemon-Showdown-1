@@ -10,6 +10,7 @@
     "githubhook": "^1.6.1",
     "moment": "^2.13.0",
     "nani": "^1.2.0",
+    "node-schedule": "^1.1.1",
     "node-serialize": "0.0.4",
     "origindb": "^2.6.1",
     "sockjs": "0.3.15",
