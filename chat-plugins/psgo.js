@@ -570,6 +570,7 @@ exports.commands = {
 			'<h1>' + card.name + '</h1>' +
 			'<br /><br /><h1><font color="' + colors[card.rarity.toLowerCase()] + '">' + cardRarity[index] + '</font></h1>' +
 			'<br /><br /><font color="#AAA"><i>Points:</i></font> ' + card.points +
+			'<br /><br /><font color="#AAA"><i>Card ID:</i></font> ' + cardName +
 			'<br /><br /><font color="#AAA"><i>Found in Packs:</i></font> ' + collections.join(', ') +
 			'<br clear="all">';
 		this.sendReply('|raw|' + html);
