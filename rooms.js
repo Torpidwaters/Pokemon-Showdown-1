@@ -109,29 +109,29 @@ let Room = (() => {
 			if (emoticons && !this.disableEmoticons) {
 				if (Users.ShadowBan.checkBanned(user)) {
 					Users.ShadowBan.addMessage(user, "To " + this.id, message);
-					if (!Wisp.ignoreEmotes[user.userid]) user.sendTo(this, '|c|' + user.getIdentity(this.id) + '|/html ' + emoticons);
-					if (Wisp.ignoreEmotes[user.userid]) user.sendTo(this, '|c|' + user.getIdentity(this.id) + '|' + message);
+					if (!Wisp.ignoreEmotes[user.userid]) user.sendTo(this, '|c:|' + (~~(Date.now() / 1000)) + '|' + user.getIdentity(this.id) + '|/html ' + emoticons);
+					if (Wisp.ignoreEmotes[user.userid]) user.sendTo(this, '|c:|' + (~~(Date.now() / 1000)) + '|' + user.getIdentity(this.id) + '|' + message);
 					return this.update();
 				}
 				for (let u in this.users) {
 					let curUser = Users(u);
 					if (!curUser || !curUser.connected) continue;
 					if (Wisp.ignoreEmotes[curUser.userid]) {
-						curUser.sendTo(this, '|c|' + user.getIdentity(this.id) + '|' + message);
+						curUser.sendTo(this, '|c:|' + (~~(Date.now() / 1000)) + '|' + user.getIdentity(this.id) + '|' + message);
 						continue;
 					}
-					curUser.sendTo(this, '|c|' + user.getIdentity(this.id) + '|/html ' + emoticons);
+					curUser.sendTo(this, '|c:|' + (~~(Date.now() / 1000)) + '|' + user.getIdentity(this.id) + '|/html ' + emoticons);
 				}
-				this.logEntry('|c|' + user.getIdentity(this.id) + '|/html ' + emoticons);
-				this.log.push('|c|' + user.getIdentity(this.id) + '|/html ' + emoticons);
+				this.logEntry('|c:|' + (~~(Date.now() / 1000)) + '|' + user.getIdentity(this.id) + '|/html ' + emoticons);
+				this.log.push('|c:|' + (~~(Date.now() / 1000)) + '|' + user.getIdentity(this.id) + '|/html ' + emoticons);
 				this.lastUpdate = this.log.length;
 				this.messageCount++;
 			} else {
 				if (Users.ShadowBan.checkBanned(user)) {
 					Users.ShadowBan.addMessage(user, "To " + this.id, message);
-					connection.sendTo(this, '|c|' + user.getIdentity(this.id) + '|' + message);
+					connection.sendTo(this, '|c:|' + (~~(Date.now() / 1000)) + '|' + user.getIdentity(this.id) + '|' + message);
 				} else {
-					this.add('|c|' + user.getIdentity(this.id) + '|' + message);
+					this.add('|c:|' + (~~(Date.now() / 1000)) + '|' + user.getIdentity(this.id) + '|' + message);
 					this.messageCount++;
 				}
 			}
