@@ -86,6 +86,7 @@ class Blackjack {
 						this.add("<br />Awarding 5 credits to " + winners[0] + ".", false, true);
 						Wisp.writeCredits(winners[0], 5);
 					} else {
+						this.add("<br />Awarding 2 credits to " + winners.join(', '), false, true);
 						Wisp.writeCredits(winners[0], 2, () => {
 							this.giveCredits(winners);
 						});
