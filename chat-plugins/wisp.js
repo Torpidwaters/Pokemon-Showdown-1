@@ -1028,6 +1028,24 @@ exports.commands = {
 		for (let u in room.bannedUsers) users.push(Wisp.nameColor(u, true));
 		this.sendReplyBox("Roombanned users in " + Tools.escapeHTML(room.title) + ":<br />" + users.join(', '));
 	},
+
+	staffdeclare: function (target, room, user) {
+		if (!this.can('declare', null, room)) return false;
+		if (!target) return this.parse('/help staffdeclare');
+		if (!this.canTalk()) return;
+		if (room.type !== 'chat') return this.errorReply("You can't use staff declares in this room.");
+
+		let id = user.userid + "-" + Wisp.randomString(5);
+		room.declareIds.push(id);
+
+		for (let u in room.users) {
+			let curUser = Users(u);
+			if (!curUser || !curUser.connected || !curUser.can('receiveauthmessages', null, room)) continue;
+			curUser.sendTo(room, '|uhtml|' + id + '|<div class="broadcast-red"><u><b>Staff Declare by ' + Tools.escapeHTML(user.name) + ':</b></u><br />' + target + '</div>');
+		}
+		this.logModCommand(user.name + " staff declared: " + target + " (id: " + id + ")");
+	},
+	staffdeclarehelp: ['/staffdeclare - Declares a message only visible to Staff.'],
 };
 
 Object.assign(Wisp, {
