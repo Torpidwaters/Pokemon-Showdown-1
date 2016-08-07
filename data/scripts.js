@@ -2035,7 +2035,7 @@ exports.BattleScripts = {
 		let level = levelScale[tier] || 90;
 		if (customScale[template.name]) level = customScale[template.name];
 
-		if (template.name === 'Slurpuff' && !counter.setupType) level = 79;
+		if (template.name === 'Slurpuff' && !counter.setupType) level = 81;
 		if (template.name === 'Xerneas' && hasMove['geomancy']) level = 71;
 
 		// Prepare optimal HP
@@ -2295,8 +2295,6 @@ exports.BattleScripts = {
 		let typeCount = {};
 		let typeComboCount = {};
 		let baseFormes = {};
-		let uberCount = 0;
-		let puCount = 0;
 		let teamDetails = {megaCount: 0, stealthRock: 0, hazardClear: 0};
 
 		while (pokemonPool.length && pokemon.length < 6) {
@@ -2405,13 +2403,6 @@ exports.BattleScripts = {
 				}
 			}
 			typeComboCount[typeCombo] = 1;
-
-			// Increment Uber/NU counters
-			if (tier === 'Uber') {
-				uberCount++;
-			} else if (tier === 'PU') {
-				puCount++;
-			}
 
 			// Increment mega, stealthrock, weather, and base species counters
 			if (isMegaSet) teamDetails.megaCount++;

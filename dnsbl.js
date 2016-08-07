@@ -63,6 +63,7 @@ let cidr = require('./cidr.js');
 let rangeLeaseweb = cidr.checker('207.244.64.0/18');
 let rangeLeaseweb2 = cidr.checker('209.58.128.0/18');
 let rangeLeaseweb3 = cidr.checker('103.254.152.0/22');
+let rangeLeaseweb4 = cidr.checker('108.59.0.0/20');
 let rangeVoxility = cidr.checker('5.254.64.0/20');
 let rangeCenet = cidr.checker('27.111.64.0/21');
 let rangeQlded = cidr.checker('203.104.0.0/20');
@@ -71,6 +72,7 @@ let rangeTelefonica = cidr.checker('181.64.0.0/14');
 let rangeTelstra = cidr.checker('101.160.0.0/11');
 let rangeStarhub = cidr.checker(['27.125.128.0/18', '101.127.0.0/17', '116.88.0.0/17', '122.11.192.0/18', '182.19.128.0/17', '182.55.0.0/16', '183.90.0.0/17', '203.116.122.0/23']);
 let rangeUltrasurf = cidr.checker('65.49.0.0/17');
+let rangeTmobile = cidr.checker('172.32.0.0/11');
 
 Dnsbl.reverse = function reverseDns(ip, callback) {
 	if (ip) {
@@ -78,11 +80,11 @@ Dnsbl.reverse = function reverseDns(ip, callback) {
 			callback(null, ['ideacellular.mobile-nohost']);
 			return;
 		}
-		if (ip.startsWith('172.56.') || ip.startsWith('149.254.')) {
+		if (rangeTmobile(ip) || ip.startsWith('149.254.')) {
 			callback(null, ['tmobile.mobile-nohost']);
 			return;
 		}
-		if (ip.startsWith('167.114.')) {
+		if (ip.startsWith('167.114.') || ip.startsWith('149.56.') || ip.startsWith('192.99.')) {
 			callback(null, ['ovh.proxy-nohost']);
 			return;
 		}
@@ -114,7 +116,7 @@ Dnsbl.reverse = function reverseDns(ip, callback) {
 			callback(null, ['yourserver.se.proxy-nohost']);
 			return;
 		}
-		if (rangeLeaseweb(ip) || rangeLeaseweb2(ip) || rangeLeaseweb3(ip) || rangeVoxility(ip)) {
+		if (rangeLeaseweb(ip) || rangeLeaseweb2(ip) || rangeLeaseweb3(ip) || rangeLeaseweb4(ip) || rangeVoxility(ip) || ip.startsWith('23.19.') || ip.startsWith('64.120.') || ip.startsWith('185.9.19.')) {
 			callback(null, ['zenmate.proxy-nohost']);
 			return;
 		}
