@@ -210,15 +210,16 @@ exports.commands = {
 		});
 	},
 
-	transferbucks: function (target, room, user) {
+	confirmtransferbucks: 'transferbucks',
+	transferbucks: function (target, room, user, connection, cmd) {
 		if (!target) return this.sendReply("Usage: /transferbucks [user], [amount]");
 		let splitTarget = target.split(',');
 		for (let u in splitTarget) splitTarget[u] = splitTarget[u].trim();
 		if (!splitTarget[1]) return this.sendReply("Usage: /transferbucks [user], [amount]");
 
-		let targetUser = splitTarget[0];
+		let targetUser = (Users.getExact(splitTarget[0]) ? Users.getExact(splitTarget[0]).name : splitTarget[0]);
 		if (toId(targetUser).length < 1) return this.sendReply("/transferbucks - [user] may not be blank.");
-		if (toId(targetUser).length > 19) return this.sendReply("/transferbucks - [user] can't be longer than 19 characters.");
+		if (toId(targetUser).length > 18) return this.sendReply("/transferbucks - [user] can't be longer than 18 characters.");
 
 		let amount = Math.round(Number(splitTarget[1]));
 		if (isNaN(amount)) return this.sendReply("/transferbucks - [amount] must be a number.");
@@ -227,17 +228,24 @@ exports.commands = {
 
 		Economy.readMoney(user.userid, money => {
 			if (money < amount) return this.sendReply("/transferbucks - You can't transfer more bucks than you have.");
+			if (cmd !== 'confirmtransferbucks') {
+				return this.popupReply('|html|<center>' +
+					'<button class = "card-td button" name = "send" value = "/confirmtransferbucks ' + toId(targetUser) + ', ' + amount + '"' +
+					'style = "outline: none; width: 200px; font-size: 11pt; padding: 10px; border-radius: 14px ; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4); box-shadow: 0px 0px 7px rgba(0, 0, 0, 0.4) inset; transition: all 0.2s;">' +
+					'Confirm transfer to <br><b style = "color:' + Wisp.hashColor(targetUser) + '; text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8)">' + Tools.escapeHTML(targetUser) + '</b></button></center>'
+				);
+			}
 			Economy.writeMoney(user.userid, -amount, () => {
 				Economy.writeMoney(targetUser, amount, () => {
 					Economy.readMoney(targetUser, firstAmount => {
 						Economy.readMoney(user.userid, secondAmount => {
-							this.sendReply("You sent " + amount + ((amount === 1) ? " buck " : " bucks ") + " to " + targetUser);
+							this.popupReply("You sent " + amount + ((amount === 1) ? " buck " : " bucks ") + " to " + targetUser);
 							Economy.logTransaction(
 								user.name + " has transfered " + amount + ((amount === 1) ? " buck " : " bucks ") + " to " + targetUser + "\n" +
 								user.name + " now has " + secondAmount + " " + (secondAmount === 1 ? "buck." : "bucks.") + " " +
 								targetUser + " now has " + firstAmount + " " + (firstAmount === 1 ? "buck." : "bucks.")
 							);
-							if (Users.getExact(targetUser) && Users.getExact(targetUser)) {
+							if (Users.getExact(targetUser) && Users.getExact(targetUser).connected) {
 								Users.getExact(targetUser).send('|popup||html|' + Wisp.nameColor(user.name, true) + " has sent you " + amount + ((amount === 1) ? " buck." : " bucks."));
 							}
 						});
