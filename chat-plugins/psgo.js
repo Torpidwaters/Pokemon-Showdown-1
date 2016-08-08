@@ -41,9 +41,9 @@ const tourCardRarity = ['No Card', 'Common', 'Uncommon', 'Rare', 'Epic', 'Epic',
 const cardRarity = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'];
 let cleanPacks = [];
 let cleanCard = [];
-let rareCache = []; //Used to cache cards for tours
-let cardCache = []; //Used to cache cards in packs
-let userPacks = {}; //Used to store users unopened packs
+let rareCache = []; // Used to cache cards for tours
+let cardCache = []; // Used to cache cards in packs
+let userPacks = {}; // Used to store users unopened packs
 
 function saveCards() {
 	let data = "{\n";
@@ -65,9 +65,9 @@ function cachePacks() {
 	for (let i = 0; i < packs.length; i++) {
 		cardCache.push([]);
 		for (let key in cards) {
-			if (cards.hasOwnProperty(key)) {
+			if (cards[key]) {
 				let obj = cards[key];
-				if (obj.hasOwnProperty('collection') && obj.collection.indexOf(toId(packs[i])) > -1) cardCache[i].push(key);
+				if (obj['collection'] && obj.collection.indexOf(toId(packs[i])) > -1) cardCache[i].push(key);
 			}
 		}
 		cleanPacks.push(toId(packs[i]));
@@ -78,9 +78,9 @@ function cacheRarity() {
 	for (let i = 0; i < cardRarity.length; i++) {
 		rareCache.push([]);
 		for (let key in cards) {
-			if (cards.hasOwnProperty(key)) {
+			if (cards[key]) {
 				let obj = cards[key];
-				if (obj.hasOwnProperty('rarity') && obj.rarity.indexOf(cardRarity[i]) > -1) rareCache[i].push(key);
+				if (obj['rarity'] && obj.rarity.indexOf(cardRarity[i]) > -1) rareCache[i].push(key);
 			}
 		}
 	}
@@ -154,7 +154,7 @@ function getShopDisplay(shop) {
 	return display;
 }
 
-function rankLadder(title, type, array, prop, group) { //Will clean up someday (tm)
+function rankLadder(title, type, array, prop, group) { // Will clean up someday (tm)
 	let groupHeader = group || 'Username';
 	const ladderTitle = '<center><h4><u>' + title + '</u></h4></center>';
 	const thStyle = 'class="rankladder-headers default-td" style="background: -moz-linear-gradient(#576468, #323A3C); background: -webkit-linear-gradient(#576468, #323A3C); background: -o-linear-gradient(#576468, #323A3C); background: linear-gradient(#576468, #323A3C); box-shadow: -1px -1px 2px rgba(0, 0, 0, 0.3) inset, 1px 1px 1px rgba(255, 255, 255, 0.7) inset;"';
@@ -1189,8 +1189,8 @@ exports.commands = {
 		let targetUser = parts.shift();
 		let card = parts[0].trim();
 		if (!targetUser || !card) return this.errorReply("/takecard [user], [card ID]");
-		if (!cards.hasOwnProperty(card)) return this.sendReply(target + ": card not found.");
-		//Take the card from the user.
+		if (!cards.hasOwnProperty(card)) return this.sendReply(target + ": card not found."); // eslint-disable-line no-prototype-builtins
+		// Take the card from the user.
 		card = cards[card];
 		removeCard(card.title, targetUser);
 		user.popup("You have successfully taken " + card.name + " from " + targetUser + ".");

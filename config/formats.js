@@ -597,11 +597,11 @@ exports.Formats = [
 				if (set.ability !== 'Speed Boost') return ["" + template.species + " is not allowed to hold " + item.name + "."];
 				break;
 			case 'mawilite': case 'medichamite':
-				if (powerAbilities.hasOwnProperty(set.ability)) break;
+				if (powerAbilities[set.ability]) break;
 				if (!template.otherFormes) return ["" + template.species + " is not allowed to hold " + item.name + "."];
 				for (let i = 0; i < template.otherFormes.length; i++) {
 					let altTemplate = this.getTemplate(template.otherFormes[i]);
-					if ((altTemplate.isMega || altTemplate.isPrimal) && powerAbilities.hasOwnProperty(altTemplate.abilities['0'])) {
+					if ((altTemplate.isMega || altTemplate.isPrimal) && powerAbilities[altTemplate.abilities['0']]) {
 						allowedPower = true;
 						break;
 					}
