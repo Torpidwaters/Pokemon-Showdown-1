@@ -9,6 +9,7 @@ let TournamentGenerators = Object.create(null);
 let generatorFiles = {
 	'roundrobin': 'generator-round-robin.js',
 	'elimination': 'generator-elimination.js',
+	'buyin': 'generator-elimination.js',
 };
 for (let type in generatorFiles) {
 	TournamentGenerators[type] = require('./' + generatorFiles[type]);
@@ -62,6 +63,10 @@ class Tournament {
 		this.autoStartTimer = null;
 
 		this.isEnded = false;
+
+		if (room.tournamentBuyin) {
+			this.generator.name = (room.tournamentBuyin + ' Buck Buy in');
+		}
 
 		room.add('|tournament|create|' + this.format + '|' + generator.name + '|' + this.playerCap);
 		room.send('|tournament|update|' + JSON.stringify({
@@ -269,6 +274,12 @@ class Tournament {
 			output.sendReply('|tournament|error|' + error);
 			return;
 		}
+
+		if (toId(this.generator.name).substr(5) === 'buyin') {
+			this.room.tournamentPool -= this.room.tournamentBuyin;
+			Economy.writeMoney(user.userid, this.room.tournamentBuyin);
+		}
+
 		this.players[user.userid].destroy();
 		delete this.players[user.userid];
 		this.playerCount--;
@@ -870,13 +881,14 @@ class Tournament {
 				if (this.prizeMoney[1]) secondMoney = this.prizeMoney[1];
 			}
 
-			/*if (toId(this.generator.name).substr(5) === 'buyin') {
+			if (toId(this.generator.name).substr(5) === 'buyin') {
 				this.room.tournamentPool -= Math.round(this.room.tournamentPool * 0.10);
-				firstMoney = Math.round(this.room.tournamentPool / 1.5);
-				secondMoney = Math.floor(this.room.tournamentPool - firstMoney);
+				firstMoney = Math.round(this.room.tournamentPool);
+				secondMoney = Math.floor(this.room.tournamentPool / 3);
+				firstMoney -= secondMoney;
 				firstBuck = 'buck';
 				secondBuck = 'buck';
-			}*/
+			}
 
 			if (firstMoney) {
 				if (firstMoney > 1) firstBuck = 'bucks';
@@ -930,7 +942,7 @@ function createTournamentGenerator(generator, args, output) {
 	args.unshift(null);
 	return new (Generator.bind.apply(Generator, args))();
 }
-function createTournament(room, format, generator, playerCap, isRated, args, output) {
+function createTournament(room, format, generator, playerCap, isRated, args, output, buyin) {
 	if (room.type !== 'chat') {
 		output.errorReply("Tournaments can only be created in chat rooms.");
 		return;
@@ -958,6 +970,11 @@ function createTournament(room, format, generator, playerCap, isRated, args, out
 		output.errorReply("You cannot have a player cap that is less than 2.");
 		return;
 	}
+	if (toId(generator) === 'buyin') {
+		if (!buyin) buyin = 1;
+		room.tournamentBuyin = parseInt(buyin);
+		room.tournamentPool = 0;
+	}
 	room.game = exports.tournaments[room.id] = new Tournament(room, format, createTournamentGenerator(generator, args, output), playerCap, isRated);
 	return room.game;
 }
@@ -967,6 +984,13 @@ function deleteTournament(id, output) {
 		output.errorReply(id + " doesn't exist.");
 		return false;
 	}
+	if (toId(tournament.generator.name).substr(5) === 'buyin') {
+		let amount = tournament.room.tournamentBuyin;
+		let users = usersToNames(tournament.generator.getUsers().sort());
+		Economy.writeMoneyArr(users, amount);
+	}
+	delete tournament.room.tournamentBuyin;
+	delete tournament.room.tournamentPool;
 	tournament.forceEnd(output);
 	delete exports.tournaments[id];
 	let room = Rooms(id);
@@ -984,6 +1008,17 @@ let commands = {
 		j: 'join',
 		in: 'join',
 		join: function (tournament, user) {
+			if (toId(tournament.generator.name).substr(toId(tournament.generator.name).length - 5, toId(tournament.generator.name).length) === 'buyin') {
+				Economy.readMoney(user.userid, amount => {
+					if (amount < tournament.room.tournamentBuyin) return this.sendReply("You need " + (tournament.room.tournamentBuyin - amount) + " more bucks to join this tournament.");
+					Economy.writeMoney(user.userid, tournament.room.tournamentBuyin * -1, () => {
+						tournament.addUser(user, false, this);
+						tournament.room.tournamentPool += tournament.room.tournamentBuyin;
+						this.sendReply('You have joined the tournament.');
+					});
+				});
+				return;
+			}
 			tournament.addUser(user, false, this);
 		},
 		l: 'leave',
@@ -1297,7 +1332,11 @@ CommandParser.commands.tournament = function (paramString, room, user) {
 			return this.sendReply("Usage: " + cmd + " <format>, <type> [, <comma-separated arguments>]");
 		}
 
-		let tour = createTournament(room, params.shift(), params.shift(), params.shift(), Config.istournamentsrated, params, this);
+		let format = params.shift();
+		let generator = params.shift();
+		let playerCap = params.shift();
+
+		let tour = createTournament(room, format, generator, (toId(generator) === 'buyin' ? Infinity : playerCap), Config.istournamentsrated, params, this, (toId(generator) === 'buyin' ? playerCap : false));
 		if (tour) {
 			this.privateModCommand("(" + user.name + " created a tournament in " + tour.format + " format.)");
 			if (room.tourAnnouncements) {
