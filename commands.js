@@ -403,85 +403,87 @@ exports.commands = {
 		if (targetUser.locked && !user.can('lock')) {
 			return this.errorReply("This user is locked and cannot PM.");
 		}
-		if (targetUser.ignorePMs && targetUser.ignorePMs !== user.group && !user.can('lock')) {
-			if (!targetUser.can('lock')) {
-				return this.errorReply("This user is blocking private messages right now.");
-			} else if (targetUser.can('bypassall')) {
-				return this.errorReply("This admin is too busy to answer private messages right now. Please contact a different staff member.");
+		Wisp.canPM(user.userid, targetUser.userid, canPM => {
+			if (targetUser.ignorePMs && targetUser.ignorePMs !== user.group && !user.can('lock') && !canPM) {
+				if (!targetUser.can('lock')) {
+					return this.errorReply("This user is blocking private messages right now.");
+				} else if (targetUser.can('bypassall')) {
+					return this.errorReply("This admin is too busy to answer private messages right now. Please contact a different staff member.");
+				}
 			}
-		}
-		if (user.ignorePMs && user.ignorePMs !== targetUser.group && !targetUser.can('lock')) {
-			return this.errorReply("You are blocking private messages right now.");
-		}
+			if (user.ignorePMs && user.ignorePMs !== targetUser.group && !targetUser.can('lock') && !canPM) {
+				return this.errorReply("You are blocking private messages right now.");
+			}
 
-		target = this.canTalk(target, null, targetUser);
-		if (!target) return false;
+			target = this.canTalk(target, null, targetUser);
+			if (!target) return false;
 
-		let message;
-		if (target.charAt(0) === '/' && target.charAt(1) !== '/') {
-			// PM command
-			let innerCmdIndex = target.indexOf(' ');
-			let innerCmd = (innerCmdIndex >= 0 ? target.slice(1, innerCmdIndex) : target.slice(1));
-			let innerTarget = (innerCmdIndex >= 0 ? target.slice(innerCmdIndex + 1) : '');
-			switch (innerCmd) {
-			case 'me':
-			case 'mee':
-			case 'announce':
-				break;
-			case 'ME':
-			case 'MEE':
-				message = '|pm|' + user.getIdentity().toUpperCase() + '|' + targetUser.getIdentity() + '|/' + innerCmd.toLowerCase() + ' ' + innerTarget;
-				break;
-			case 'invite':
-			case 'inv': {
-				let targetRoom = Rooms.search(innerTarget);
-				if (!targetRoom || targetRoom === Rooms.global) return this.errorReply('The room "' + innerTarget + '" does not exist.');
-				if (targetRoom.staffRoom && !targetUser.isStaff) return this.errorReply('User "' + this.targetUsername + '" requires global auth to join room "' + targetRoom.id + '".');
-				if (targetRoom.modjoin) {
-					if (targetRoom.auth && (targetRoom.isPrivate === true || targetUser.group === ' ') && !(targetUser.userid in targetRoom.auth)) {
-						this.parse('/roomvoice ' + targetUser.name, false, targetRoom);
-						if (!(targetUser.userid in targetRoom.auth)) {
-							return;
+			let message;
+			if (target.charAt(0) === '/' && target.charAt(1) !== '/') {
+				// PM command
+				let innerCmdIndex = target.indexOf(' ');
+				let innerCmd = (innerCmdIndex >= 0 ? target.slice(1, innerCmdIndex) : target.slice(1));
+				let innerTarget = (innerCmdIndex >= 0 ? target.slice(innerCmdIndex + 1) : '');
+				switch (innerCmd) {
+				case 'me':
+				case 'mee':
+				case 'announce':
+					break;
+				case 'ME':
+				case 'MEE':
+					message = '|pm|' + user.getIdentity().toUpperCase() + '|' + targetUser.getIdentity() + '|/' + innerCmd.toLowerCase() + ' ' + innerTarget;
+					break;
+				case 'invite':
+				case 'inv': {
+					let targetRoom = Rooms.search(innerTarget);
+					if (!targetRoom || targetRoom === Rooms.global) return this.errorReply('The room "' + innerTarget + '" does not exist.');
+					if (targetRoom.staffRoom && !targetUser.isStaff) return this.errorReply('User "' + this.targetUsername + '" requires global auth to join room "' + targetRoom.id + '".');
+					if (targetRoom.modjoin) {
+						if (targetRoom.auth && (targetRoom.isPrivate === true || targetUser.group === ' ') && !(targetUser.userid in targetRoom.auth)) {
+							this.parse('/roomvoice ' + targetUser.name, false, targetRoom);
+							if (!(targetUser.userid in targetRoom.auth)) {
+								return;
+							}
 						}
 					}
-				}
-				if (targetRoom.isPrivate === true && targetRoom.modjoin && targetRoom.auth) {
-					if (!(user.userid in targetRoom.auth)) {
-						return this.errorReply('The room "' + innerTarget + '" does not exist.');
+					if (targetRoom.isPrivate === true && targetRoom.modjoin && targetRoom.auth) {
+						if (!(user.userid in targetRoom.auth)) {
+							return this.errorReply('The room "' + innerTarget + '" does not exist.');
+						}
+						if (Config.groupsranking.indexOf(targetRoom.auth[targetUser.userid] || ' ') < Config.groupsranking.indexOf(targetRoom.modjoin) && !targetUser.can('bypassall')) {
+							return this.errorReply('The user "' + targetUser.name + '" does not have permission to join "' + innerTarget + '".');
+						}
 					}
-					if (Config.groupsranking.indexOf(targetRoom.auth[targetUser.userid] || ' ') < Config.groupsranking.indexOf(targetRoom.modjoin) && !targetUser.can('bypassall')) {
-						return this.errorReply('The user "' + targetUser.name + '" does not have permission to join "' + innerTarget + '".');
+					if (targetRoom.auth && targetRoom.isPrivate && !(user.userid in targetRoom.auth) && !user.can('makeroom')) {
+						return this.errorReply('You do not have permission to invite people to this room.');
 					}
-				}
-				if (targetRoom.auth && targetRoom.isPrivate && !(user.userid in targetRoom.auth) && !user.can('makeroom')) {
-					return this.errorReply('You do not have permission to invite people to this room.');
-				}
 
-				target = '/invite ' + targetRoom.id;
-				break;
+					target = '/invite ' + targetRoom.id;
+					break;
+				}
+				default:
+					return this.errorReply("The command '/" + innerCmd + "' was unrecognized or unavailable in private messages. To send a message starting with '/" + innerCmd + "', type '//" + innerCmd + "'.");
+				}
 			}
-			default:
-				return this.errorReply("The command '/" + innerCmd + "' was unrecognized or unavailable in private messages. To send a message starting with '/" + innerCmd + "', type '//" + innerCmd + "'.");
-			}
-		}
-		let noEmotes = target;
+			let noEmotes = target;
 
-		if (!message) {
-			let emoticons = Wisp.parseEmoticons(user.getIdentity(room.id), target, room);
-			if (emoticons) {
-				noEmotes = target;
-				target = "/html " + emoticons;
+			if (!message) {
+				let emoticons = Wisp.parseEmoticons(user.getIdentity(room.id), target, room);
+				if (emoticons) {
+					noEmotes = target;
+					target = "/html " + emoticons;
+				}
+				message = '|pm|' + user.getIdentity() + '|' + targetUser.getIdentity() + '|' + target;
 			}
-			message = '|pm|' + user.getIdentity() + '|' + targetUser.getIdentity() + '|' + target;
-		}
-		user.send(message);
-		if (Users.ShadowBan.checkBanned(user)) {
-			Users.ShadowBan.addMessage(user, "Private to " + targetUser.getIdentity(), noEmotes);
-		} else {
-			if (targetUser !== user) targetUser.send(message);
-		}
-		targetUser.lastPM = user.userid;
-		user.lastPM = targetUser.userid;
+			user.send(message);
+			if (Users.ShadowBan.checkBanned(user)) {
+				Users.ShadowBan.addMessage(user, "Private to " + targetUser.getIdentity(), noEmotes);
+			} else {
+				if (targetUser !== user) targetUser.send(message);
+			}
+			targetUser.lastPM = user.userid;
+			user.lastPM = targetUser.userid;
+		});
 	},
 	msghelp: ["/msg OR /whisper OR /w [username], [message] - Send a private message."],
 

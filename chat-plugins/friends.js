@@ -16,6 +16,17 @@ function getFriends(userid, callback) {
 	});
 }
 
+function canPM(userid, targetUser, callback) {
+	Wisp.database.all("SELECT userid FROM friends WHERE friend=$userid AND userid=$targetUser", {$userid: userid, $targetUser: targetUser}, function (err, rows) {
+		if (err) {
+			console.log("canPM: " + err);
+			return callback(false);
+		}
+		return callback(rows.length > 0);
+	});
+}
+Wisp.canPM = canPM;
+
 function getAdded(userid, callback) {
 	if (!callback) return false;
 	userid = toId(userid);
