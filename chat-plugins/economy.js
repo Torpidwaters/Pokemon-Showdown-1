@@ -83,29 +83,31 @@ let Economy = global.Economy = {
 	},
 };
 
-schedule.scheduleJob('0 18 * * 0,3', function () {
-	if (lottery.length < 1) return;
-	let winner = lottery[Math.floor(Math.random() * lottery.length)];
-	let amount = (lottery.length * prices['ticket']) - Math.ceil((lottery.length * prices['ticket']) * 0.10);
-	if (amount === 0) amount = 1;
-	Economy.writeMoney(winner, amount, function () {
-		Economy.logTransaction(winner + " has won " + amount + (amount === 1 ? " buck" : " bucks") + " from the lottery.");
-		if (Users(winner) && Users(winner).connected) {
-			Users(winner).send("|popup||modal|Congratulations, you have won " + amount + (amount === 1 ? " buck" : " bucks") + " from the lottery.");
-		} else {
-			if (!Wisp.tells[winner]) Wisp.tells[winner] = {};
-			if (!Wisp.tells[winner]['server']) Wisp.tells[winner]['server'] = [];
-			Wisp.tells[winner]['server'].push('<span style = "color:gray;"><i>(Sent by the Server on ' + moment().format("ddd, MMMM DD, YYYY HH:mmA ZZ") + ')</i></span><br />' +
-			'Congratulations, you have won ' + amount + (amount === 1 ? ' buck' : ' bucks') + ' from the lottery.');
-		}
-		for (let u in Rooms.global.users) {
-			if (!Users(u) || !Users(u).connected) continue;
-			Users(u).send("|pm|~Lottery|~|/html Congratulations to " + Wisp.nameColor(winner, true) + " for winning todays lottery. They have won " + amount + " " + (amount === 1 ? "buck." : "bucks."));
-		}
-		lottery = [];
-		fs.writeFileSync('config/lottery.csv', '');
+if (!Rooms.global.lotteryDraw) {
+	Rooms.global.lotteryDraw = schedule.scheduleJob('0 18 * * 0,3', function () {
+		if (lottery.length < 1) return;
+		let winner = lottery[Math.floor(Math.random() * lottery.length)];
+		let amount = (lottery.length * prices['ticket']) - Math.ceil((lottery.length * prices['ticket']) * 0.10);
+		if (amount === 0) amount = 1;
+		Economy.writeMoney(winner, amount, function () {
+			Economy.logTransaction(winner + " has won " + amount + (amount === 1 ? " buck" : " bucks") + " from the lottery.");
+			if (Users(winner) && Users(winner).connected) {
+				Users(winner).send("|popup||modal|Congratulations, you have won " + amount + (amount === 1 ? " buck" : " bucks") + " from the lottery.");
+			} else {
+				if (!Wisp.tells[winner]) Wisp.tells[winner] = {};
+				if (!Wisp.tells[winner]['server']) Wisp.tells[winner]['server'] = [];
+				Wisp.tells[winner]['server'].push('<span style = "color:gray;"><i>(Sent by the Server on ' + moment().format("ddd, MMMM DD, YYYY HH:mmA ZZ") + ')</i></span><br />' +
+				'Congratulations, you have won ' + amount + (amount === 1 ? ' buck' : ' bucks') + ' from the lottery.');
+			}
+			for (let u in Rooms.global.users) {
+				if (!Users(u) || !Users(u).connected) continue;
+				Users(u).send("|pm|~Lottery|~|/html Congratulations to " + Wisp.nameColor(winner, true) + " for winning todays lottery. They have won " + amount + " " + (amount === 1 ? "buck." : "bucks."));
+			}
+			lottery = [];
+			fs.writeFileSync('config/lottery.csv', '');
+		});
 	});
-});
+}
 
 exports.commands = {
 	moneylog: function (target, room, user) {
