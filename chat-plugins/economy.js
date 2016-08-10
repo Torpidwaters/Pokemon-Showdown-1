@@ -36,7 +36,12 @@ let prices = {
 let lottery = [];
 
 try {
-	lottery = fs.readFileSync('config/lottery.csv', 'utf8').split(',');
+	let data = fs.readFileSync('config/lottery.csv', 'utf8');
+	if (data.length < 2) {
+		lottery = [];
+	} else {
+		lottery = data.split(',');
+	}
 } catch (e) {}
 
 let Economy = global.Economy = {
@@ -110,6 +115,15 @@ if (!Rooms.global.lotteryDraw) {
 }
 
 exports.commands = {
+	lottery: function (target, room, user) {
+		if (!this.runBroadcast()) return;
+		if (lottery.length < 1) return this.sendReplyBox("No one has purchased any lottery tickets for this lottery.");
+		let amount = (lottery.length * prices['ticket']) - Math.ceil((lottery.length * prices['ticket']) * 0.10);
+		if (amount === 0) amount++;
+		let tickets = lottery.length;
+		this.sendReplyBox("The current lottery is worth " + amount + (amount === 1 ? " buck" : " bucks") + ".<br />" + tickets + (tickets === 1 ? " ticket" : " tickets") + " have been purchased for this lottery.");
+	},
+
 	moneylog: function (target, room, user) {
 		//if (!this.can('bucks')) return false;
 		if (!target) return this.sendReply("Usage: /moneylog [number] to view the last x lines OR /moneylog [text] to search for text.");
