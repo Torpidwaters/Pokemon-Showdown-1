@@ -29,7 +29,7 @@ Wisp.readCredits = function (userid, callback) {
 	if (!callback) return false;
 	userid = toId(userid);
 	Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
-		if (err) return console.log(err);
+		if (err) return console.log("readCredits: " + err);
 		callback(((rows[0] && rows[0].credits) ? rows[0].credits : 0));
 	});
 };
@@ -38,13 +38,13 @@ Wisp.writeCredits = function (userid, amount, callback) {
 	Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
 		if (rows.length < 1) {
 			Wisp.database.run("INSERT INTO users(userid, credits) VALUES ($userid, $amount)", {$userid: userid, $amount: amount}, function (err) {
-				if (err) return console.log(err);
+				if (err) return console.log("writeCredits 1: " + err);
 				if (callback) return callback();
 			});
 		} else {
 			amount += rows[0].credits;
 			Wisp.database.run("UPDATE users SET credits=$amount WHERE userid=$userid", {$amount: amount, $userid: userid}, function (err) {
-				if (err) return console.log(err);
+				if (err) return console.log("writeCredits 2: " + err);
 				if (callback) return callback();
 			});
 		}

@@ -1206,11 +1206,11 @@ Object.assign(Wisp, {
 			if (err) return console.log("updateSeen: " + err);
 			if (rows.length < 1) {
 				Wisp.database.run("INSERT INTO users(userid, name, lastSeen) VALUES ($userid, $name, $date)", {$userid: userid, $name: user, $date: date}, function (err) {
-					if (err) return console.log(err);
+					if (err) return console.log("updateSeen 1: " + err);
 				});
 			} else {
 				Wisp.database.run("UPDATE users SET lastSeen=$date, name=$name WHERE userid=$userid", {$date: date, $name: user, $userid: userid}, function (err) {
-					if (err) return console.log(err);
+					if (err) return console.log("updateSeen 2: " + err);
 				});
 			}
 		});
@@ -1259,7 +1259,7 @@ Object.assign(Wisp, {
 		if (!callback) return false;
 		userid = toId(userid);
 		Wisp.database.all("SELECT title FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
-			if (err) return console.log(err);
+			if (err) return console.log("getTitle: " + err);
 			callback(((rows[0] && rows[0].title) ? rows[0].title : ""));
 		});
 	},
@@ -1269,12 +1269,12 @@ Object.assign(Wisp, {
 		Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
 			if (rows.length < 1) {
 				Wisp.database.run("INSERT INTO users(userid, title) VALUES ($userid, $title)", {$userid: userid, $title: title}, function (err) {
-					if (err) return console.log(err);
+					if (err) return console.log("setTitle 1: " + err);
 					if (callback) return callback();
 				});
 			} else {
 				Wisp.database.run("UPDATE users SET title=$title WHERE userid=$userid", {$title: title, $userid: userid}, function (err) {
-					if (err) return console.log(err);
+					if (err) return console.log("setTitle 2: " + err);
 					if (callback) return callback();
 				});
 			}

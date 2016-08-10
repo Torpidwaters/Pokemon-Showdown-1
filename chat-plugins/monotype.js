@@ -14,7 +14,7 @@ function readPoints(userid, callback) {
 	if (!callback) return false;
 	userid = toId(userid);
 	database.all("SELECT points FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
-		if (err) return console.log(err);
+		if (err) return console.log("readPoints: " + err);
 		callback(((rows[0] && rows[0].points) ? rows[0].points : 0));
 	});
 }
@@ -24,13 +24,13 @@ function writePoints(userid, amount, callback) {
 	database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
 		if (rows.length < 1) {
 			database.run("INSERT INTO users(userid, points) VALUES ($userid, $amount)", {$userid: userid, $amount: amount}, function (err) {
-				if (err) return console.log(err);
+				if (err) return console.log("writePoints 1: " + err);
 				if (callback) return callback();
 			});
 		} else {
 			amount += rows[0].points;
 			database.run("UPDATE users SET points=$amount WHERE userid=$userid", {$amount: amount, $userid: userid}, function (err) {
-				if (err) return console.log(err);
+				if (err) return console.log("writePoints 2: " + err);
 				if (callback) return callback();
 			});
 		}

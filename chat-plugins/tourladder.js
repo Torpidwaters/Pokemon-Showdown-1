@@ -7,7 +7,7 @@ let deleteLadderConfirm = false;
 
 Wisp.updateTourLadder = function (p1, p2, result, room) {
 	Wisp.tourLadder.all("SELECT * FROM tourladder WHERE userid = '" + p1.userid + "' OR userid = '" + p2.userid + "';", (err, users) => {
-		if (err) return console.log(err);
+		if (err) return console.log("updateTourLadder: " + err);
 		let p1entry = users.find(player => player.userid === p1.userid);
 		let p2entry = users.find(player => player.userid === p2.userid);
 		let p1elo = p1entry ? p1entry.elo : 1000, p2elo = p2entry ? p2entry.elo : 1000;
@@ -91,7 +91,7 @@ exports.commands = {
 		if (!this.runBroadcast()) return;
 		if (!target || !target.trim()) {
 			Wisp.tourLadder.all("SELECT * FROM tourladder ORDER BY elo DESC;", (err, users) => {
-				if (err) return console.log(err);
+				if (err) return console.log("/tourladder: " + err);
 				if (!users.length) {
 					this.sendReplyBox('No rated tournaments have been played yet.');
 					room.update();
@@ -120,7 +120,7 @@ exports.commands = {
 		}
 		target = (Users.getExact(target) ? Users.getExact(target).name : target);
 		Wisp.tourLadder.all("SELECT elo FROM tourladder WHERE userid = '" + toId(target) + "';", (err, users) => {
-			if (err) return console.log(err);
+			if (err) return console.log("/tourladder 2: " + err);
 			if (!users.length) {
 				this.sendReplyBox(Wisp.nameColor(target, true) + ' has not played any rated tournaments yet.');
 			} else {
@@ -135,7 +135,7 @@ exports.commands = {
 	tourladderusers: function (target, room, user) {
 		if (!this.runBroadcast()) return;
 		Wisp.tourLadder.all("SELECT COUNT(*) FROM tourladder;", (err, count) => {
-			if (err) return console.log(err);
+			if (err) return console.log("/tourladderusers: " + err);
 			count = count[0]['COUNT(*)'];
 			if (!count) {
 				this.sendReplyBox('No rated tournaments have been played yet.');
@@ -152,7 +152,7 @@ exports.commands = {
 	resettourladder: function (target, room, user) {
 		if (!this.can('hotpatch')) return false;
 		Wisp.tourLadder.all("SELECT * FROM tourladder;", (err, users) => {
-			if (err) return console.log(err);
+			if (err) return console.log("/resettourladder: " + err);
 			if (!users.length) return this.sendReply('No rated tournaments have been played yet.');
 			if (!deleteLadderConfirm) {
 				deleteLadderConfirm = true;

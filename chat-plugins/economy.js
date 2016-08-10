@@ -56,16 +56,16 @@ let Economy = global.Economy = {
 	writeMoney: function (userid, amount, callback) {
 		userid = toId(userid);
 		Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
-			if (err) return console.log("writeMoney: " + err);
+			if (err) return console.log("writeMoney 1: " + err);
 			if (rows.length < 1) {
 				Wisp.database.run("INSERT INTO users(userid, bucks) VALUES ($userid, $amount)", {$userid: userid, $amount: amount}, function (err) {
-					if (err) return console.log(err);
+					if (err) return console.log("writeMoney 2: " + err);
 					if (callback) return callback();
 				});
 			} else {
 				amount += rows[0].bucks;
 				Wisp.database.run("UPDATE users SET bucks=$amount WHERE userid=$userid", {$amount: amount, $userid: userid}, function (err) {
-					if (err) return console.log(err);
+					if (err) return console.log("writeMoney 3: " + err);
 					if (callback) return callback();
 				});
 			}
