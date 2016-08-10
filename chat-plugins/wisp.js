@@ -1234,7 +1234,7 @@ Object.assign(Wisp, {
 	},
 
 	messageSeniorStaff: function (message) {
-		for (let u in Rooms.rooms['global'].users) {
+		for (let u in Rooms.global.users) {
 			let curUser = Users(u);
 			if (!curUser || !curUser.connected || !curUser.can('seniorstaff')) continue;
 			curUser.send('|pm|~Server|~|' + message);

@@ -172,14 +172,14 @@ function getCardArray(array) {
 }
 
 function getTopCard(roomid) {
-	if (!Rooms.rooms[roomid].uno || !Rooms.rooms[roomid].uno.top) return "UH OH!";
+	if (!Rooms(roomid).uno || !Rooms(roomid).uno.top) return "UH OH!";
 	let colourTable = {
 		"R": "red",
 		"Y": "yellow",
 		"B": "blue",
 		"G": "green",
 	};
-	return getCard(Rooms.rooms[roomid].uno.top) + (Rooms.rooms[roomid].uno.change ? "<br>Change to: <font color=\"" + colourTable[Rooms.rooms[roomid].uno.change] + "\">" + colourTable[Rooms.rooms[roomid].uno.change].toUpperCase() + "</font>" : "");
+	return getCard(Rooms(roomid).uno.top) + (Rooms(roomid).uno.change ? "<br>Change to: <font color=\"" + colourTable[Rooms(roomid).uno.change] + "\">" + colourTable[Rooms(roomid).uno.change].toUpperCase() + "</font>" : "");
 }
 
 function buildGameScreen(user, roomid, hand, uhtmlid, message, pass) {
@@ -216,8 +216,8 @@ function invertArray(array) {
 }
 
 function initTopCard(roomid) {
-	Rooms.rooms[roomid].uno.top = Rooms.rooms[roomid].uno.deck.shift();
-	Rooms.rooms[roomid].uno.discard.push(Rooms.rooms[roomid].uno.top);
+	Rooms(roomid).uno.top = Rooms(roomid).uno.deck.shift();
+	Rooms(roomid).uno.discard.push(Rooms(roomid).uno.top);
 }
 
 function playVerifier(topCard, card, hand, change, special) {
@@ -240,7 +240,7 @@ function playVerifier(topCard, card, hand, change, special) {
 }
 
 function destroy(roomid) {
-	delete Rooms.rooms[roomid].uno;
+	delete Rooms(roomid).uno;
 }
 
 function verifyAlts(id, users) {
@@ -277,13 +277,13 @@ function receiveCard(userid, roomid, times, display) {
 	if (!times) times = 1;
 	let newCards = [];
 	for (let i = 0; i < times; i++) {
-		let newCard = Rooms.rooms[roomid].uno.deck.shift();
-		Rooms.rooms[roomid].uno.data[userid].push(newCard);
+		let newCard = Rooms(roomid).uno.deck.shift();
+		Rooms(roomid).uno.data[userid].push(newCard);
 		newCards.push(newCard);
-		if (Rooms.rooms[roomid].uno.deck.length === 0) {
-			if (Rooms.rooms[roomid].uno.discard.length === 0) Rooms.rooms[roomid].uno.discard = initDeck(1);
-			Rooms.rooms[roomid].uno.deck = shuffleDeck(Rooms.rooms[roomid].uno.discard);
-			Rooms.rooms[roomid].uno.discard = [];
+		if (Rooms(roomid).uno.deck.length === 0) {
+			if (Rooms(roomid).uno.discard.length === 0) Rooms(roomid).uno.discard = initDeck(1);
+			Rooms(roomid).uno.deck = shuffleDeck(Rooms(roomid).uno.discard);
+			Rooms(roomid).uno.discard = [];
 		}
 	}
 	if (display) Users(userid).sendTo(roomid, "|raw|You received the following card(s): " + getCardArray(newCards));
@@ -293,22 +293,22 @@ function receiveCard(userid, roomid, times, display) {
 function getNextPlayer(roomid, number) {
 	//number is number to go; 2 is skipping the next one;
 	if (!number) number = 1;
-	let list = Rooms.rooms[roomid].uno.list;
+	let list = Rooms(roomid).uno.list;
 	let playerList = list.concat(list);
-	let current = Rooms.rooms[roomid].uno.player;
+	let current = Rooms(roomid).uno.player;
 	let index = playerList.indexOf(current);
-	Rooms.rooms[roomid].uno.player = playerList[index + number];
+	Rooms(roomid).uno.player = playerList[index + number];
 }
 
 function applyEffects(context, roomid, userid, card, init) {
 	let effect = card.slice(1);
 	switch (effect) {
 	case "R":
-		Rooms.rooms[roomid].uno.list = invertArray(Rooms.rooms[roomid].uno.list);
+		Rooms(roomid).uno.list = invertArray(Rooms(roomid).uno.list);
 		if (init) {
 			context.add("The direction has been switched!");
 			break;
-		} else if (Rooms.rooms[roomid].uno.list.length === 2) {
+		} else if (Rooms(roomid).uno.list.length === 2) {
 			getNextPlayer(roomid);
 		} else {
 			getNextPlayer(roomid, 2);
@@ -333,19 +333,19 @@ function applyEffects(context, roomid, userid, card, init) {
 }
 
 function runDQ(context, roomid) {
-	Rooms.rooms[roomid].uno.timer = setTimeout(function () {
-		let currentPlayer = Rooms.rooms[roomid].uno.player;
+	Rooms(roomid).uno.timer = setTimeout(function () {
+		let currentPlayer = Rooms(roomid).uno.player;
 		getNextPlayer(roomid);
-		Rooms.rooms[roomid].uno.list.splice(Rooms.rooms[roomid].uno.list.indexOf(currentPlayer), 1);
-		Users(currentPlayer).sendTo(roomid, "|uhtmlchange|" + Rooms.rooms[roomid].uno.rand.toString() + Rooms.rooms[roomid].uno.id + "|");
-		delete Rooms.rooms[roomid].uno.data[currentPlayer];
-		Rooms.rooms[roomid].uno.lastDraw = null;
-		if (Rooms.rooms[roomid].uno.list.length === 1) {
-			let finalPlayer = Users(Rooms.rooms[roomid].uno.player) ? Users(Rooms.rooms[roomid].uno.player).name : Rooms.rooms[roomid].uno.player;
-			context.add(Rooms.rooms[roomid].uno.lastplay);
+		Rooms(roomid).uno.list.splice(Rooms(roomid).uno.list.indexOf(currentPlayer), 1);
+		Users(currentPlayer).sendTo(roomid, "|uhtmlchange|" + Rooms(roomid).uno.rand.toString() + Rooms(roomid).uno.id + "|");
+		delete Rooms(roomid).uno.data[currentPlayer];
+		Rooms(roomid).uno.lastDraw = null;
+		if (Rooms(roomid).uno.list.length === 1) {
+			let finalPlayer = Users(Rooms(roomid).uno.player) ? Users(Rooms(roomid).uno.player).name : Rooms(roomid).uno.player;
+			context.add(Rooms(roomid).uno.lastplay);
 			context.add("|raw|<b>" + finalPlayer + "</b> has won the game!");
-			if (Rooms.rooms[roomid].uno.pot) {
-				let winnings = Rooms.rooms[roomid].uno.start * Rooms.rooms[roomid].uno.pot;
+			if (Rooms(roomid).uno.pot) {
+				let winnings = Rooms(roomid).uno.start * Rooms(roomid).uno.pot;
 				Economy.writeMoney(toId(finalPlayer), winnings);
 				Economy.logTransaction(finalPlayer + " has won " + winnings + " " + (winnings === 1 ? " buck " : " bucks ") + " from a game of UNO in " + roomid);
 				this.add(finalPlayer + " has won " + winnings + " bucks!");
@@ -361,22 +361,22 @@ function runDQ(context, roomid) {
 }
 
 function clearDQ(roomid) {
-	clearTimeout(Rooms.rooms[roomid].uno.timer);
+	clearTimeout(Rooms(roomid).uno.timer);
 }
 
 function initTurn(context, roomid, repost, room) {
-	let currentPlayer = Rooms.rooms[roomid].uno.player;
-	Rooms.rooms[roomid].uno.id++;
+	let currentPlayer = Rooms(roomid).uno.player;
+	Rooms(roomid).uno.id++;
 	let playerName = Users(currentPlayer) ? Users(currentPlayer).name : currentPlayer;
 	//announce the turn
 	if (!repost) {
 		Users(currentPlayer).sendTo(context.room, "|c:|" + ~~(Date.now() / 1000) + "|~UNOManager|" + playerName + ", it's your turn!");
-		Rooms.rooms[roomid].uno.lastDraw = null;
+		Rooms(roomid).uno.lastDraw = null;
 		runDQ(context, roomid);
 	}
 	Rooms(roomid).update();
 	//show the card control center
-	let CCC = buildGameScreen(currentPlayer, roomid, Rooms.rooms[roomid].uno.data[currentPlayer], Rooms.rooms[roomid].uno.rand.toString() + Rooms.rooms[roomid].uno.id);
+	let CCC = buildGameScreen(currentPlayer, roomid, Rooms(roomid).uno.data[currentPlayer], Rooms(roomid).uno.rand.toString() + Rooms(roomid).uno.id);
 	Users(currentPlayer).sendTo(roomid, CCC);
 }
 /*
