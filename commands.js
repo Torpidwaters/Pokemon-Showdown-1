@@ -3305,6 +3305,9 @@ exports.commands = {
 		if (!targetUser || !targetUser.connected) {
 			return this.popupReply("The user '" + this.targetUsername + "' was not found.");
 		}
+		if (user.locked && !targetUser.locked) {
+			return this.popupReply("You are locked and cannot challenge unlocked users.");
+		}
 		if (targetUser.blockChallenges && !user.can('bypassblocks', targetUser)) {
 			return this.popupReply("The user '" + this.targetUsername + "' is not accepting challenges right now.");
 		}
