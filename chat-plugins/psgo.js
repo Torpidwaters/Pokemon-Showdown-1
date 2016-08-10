@@ -471,7 +471,7 @@ exports.commands = {
 
 	packshop: function (target, room, user) {
 		if (!this.runBroadcast()) return;
-		return this.sendReply('|raw|' + getShopDisplay(shop));
+		return this.sendReply('|raw|<div class="infobox infobox-limited">' + getShopDisplay(shop) + '</div>');
 	},
 
 	open: 'openpack',
