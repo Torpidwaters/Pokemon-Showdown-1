@@ -1039,10 +1039,10 @@ exports.commands = {
 		if (!this.can('makeroom')) return false;
 		let alias = toId(target);
 		if (!alias.length) return this.errorReply("Only alphanumeric characters are valid in an alias.");
-		if (Rooms.get(alias) || Rooms.aliases[alias]) return this.errorReply("You cannot set an alias to an existing room or alias.");
+		if (Rooms(alias) || Rooms.aliases.has(alias)) return this.errorReply("You cannot set an alias to an existing room or alias.");
 		if (room.isPersonal) return this.errorReply("Personal rooms can't have aliases.");
 
-		Rooms.aliases[alias] = room.id;
+		Rooms.aliases.set(alias, room.id);
 		this.privateModCommand("(" + user.name + " added the room alias '" + target + "'.)");
 
 		if (!room.aliases) room.aliases = [];
@@ -1057,15 +1057,15 @@ exports.commands = {
 		if (!room.aliases) return this.errorReply("This room does not have any aliases.");
 		if (!this.can('makeroom')) return false;
 		let alias = toId(target);
-		if (!alias.length || !Rooms.aliases[alias]) return this.errorReply("Please specify an existing alias.");
-		if (Rooms.aliases[alias] !== room.id) return this.errorReply("You may only remove an alias from the current room.");
+		if (!alias || !Rooms.aliases.has(alias)) return this.errorReply("Please specify an existing alias.");
+		if (Rooms.aliases.get(alias) !== room.id) return this.errorReply("You may only remove an alias from the current room.");
 
 		this.privateModCommand("(" + user.name + " removed the room alias '" + target + "'.)");
 
 		let aliasIndex = room.aliases.indexOf(alias);
 		if (aliasIndex >= 0) {
 			room.aliases.splice(aliasIndex, 1);
-			delete Rooms.aliases[alias];
+			Rooms.aliases.delete(alias);
 			Rooms.global.writeChatRoomData();
 		}
 	},
@@ -1291,26 +1291,24 @@ exports.commands = {
 		if (group) {
 			buffer.push('Global auth: ' + group.charAt(0));
 		}
-		for (let id in Rooms.rooms) {
-			let curRoom = Rooms.rooms[id];
-			if (!curRoom.auth || curRoom.isPrivate) continue;
+		Rooms.rooms.forEach((curRoom, id) => {
+			if (!curRoom.auth || curRoom.isPrivate) return;
 			group = curRoom.auth[targetId];
-			if (!group) continue;
+			if (!group) return;
 			innerBuffer.push(group + id);
-		}
+		});
 		if (innerBuffer.length) {
 			buffer.push('Room auth: ' + innerBuffer.join(', '));
 		}
 		if (targetId === user.userid || user.can('lock')) {
 			innerBuffer = [];
-			for (let id in Rooms.rooms) {
-				let curRoom = Rooms.rooms[id];
-				if (!curRoom.auth || !curRoom.isPrivate) continue;
-				if (curRoom.isPrivate === true) continue;
+			Rooms.rooms.forEach((curRoom, id) => {
+				if (!curRoom.auth || !curRoom.isPrivate) return;
+				if (curRoom.isPrivate === true) return;
 				let auth = curRoom.auth[targetId];
-				if (!auth) continue;
+				if (!auth) return;
 				innerBuffer.push(auth + id);
-			}
+			});
 			if (innerBuffer.length) {
 				buffer.push('Hidden room auth: ' + innerBuffer.join(', '));
 			}
@@ -1500,10 +1498,10 @@ exports.commands = {
 		if (targetRoom.isPrivate || targetRoom.isPersonal) {
 			return this.parse('/msg ' + this.targetUsername + ', /invite ' + targetRoom.id);
 		}
-		if (Rooms.rooms[targetRoom.id].users[targetUser.userid]) {
+		if (targetRoom.users[targetUser.userid]) {
 			return this.errorReply("User " + targetUser.name + " is already in the room " + targetRoom.title + "!");
 		}
-		if (!Rooms.rooms[room.id].users[targetUser.userid]) {
+		if (!room.users[targetUser.userid]) {
 			return this.errorReply("User " + this.targetUsername + " is not in the room " + room.id + ".");
 		}
 		if (targetUser.joinRoom(targetRoom.id) === false) return this.errorReply("User " + targetUser.name + " could not be joined to room " + targetRoom.title + ". They could be banned from the room.");
@@ -2124,7 +2122,7 @@ exports.commands = {
 		if (!this.can('editroom', null, room)) return false;
 
 		let targetInt = parseInt(target);
-		if (target === 'off' || target === 'disable') {
+		if (target === 'off' || target === 'disable' || target === 'false') {
 			if (!room.slowchat) return this.errorReply("Slow chat is already disabled in this room.");
 			room.slowchat = false;
 			this.add("|raw|<div class=\"broadcast-blue\"><b>Slow chat was disabled!</b><br />There is no longer a set minimum time between messages.</div>");
@@ -2401,7 +2399,7 @@ exports.commands = {
 
 			for (let i = 0; i < words.length; i++) {
 				if (/[\\^$*+?()|{}[\]]/.test(words[i])) {
-					if (!user.can('makechatroom')) return this.errorReply("Regex banwords are only allowed for leaders or above.");
+					if (!user.can('makeroom')) return this.errorReply("Regex banwords are only allowed for leaders or above.");
 
 					try {
 						let test = new RegExp(words[i]); // eslint-disable-line no-unused-vars
@@ -2733,9 +2731,8 @@ exports.commands = {
 		if (!this.can('lockdown')) return false;
 
 		Rooms.global.lockdown = true;
-		for (let id in Rooms.rooms) {
-			if (id === 'global') continue;
-			let curRoom = Rooms.rooms[id];
+		Rooms.rooms.forEach((curRoom, id) => {
+			if (id === 'global') return;
 			curRoom.addRaw("<div class=\"broadcast-red\"><b>The server is restarting soon.</b><br />Please finish your battles quickly. No new battles can be started until the server resets in a few minutes.</div>").update();
 			if (curRoom.requestKickInactive && !curRoom.battle.ended) {
 				curRoom.requestKickInactive(user, true);
@@ -2744,7 +2741,7 @@ exports.commands = {
 					curRoom.addRaw("<div class=\"broadcast-red\"><b>Moderated chat was set to +!</b><br />Only users of rank + and higher can talk.</div>").update();
 				}
 			}
-		}
+		});
 
 		this.logEntry(user.name + " used /lockdown");
 	},
@@ -2761,12 +2758,11 @@ exports.commands = {
 		if (!this.can('lockdown')) return false;
 
 		Rooms.global.lockdown = true;
-		for (let id in Rooms.rooms) {
-			if (id === 'global') continue;
-			let curRoom = Rooms.rooms[id];
-			if (curRoom.battle) continue;
+		Rooms.rooms.forEach((curRoom, id) => {
+			if (id === 'global') return;
+			if (curRoom.battle) return;
 			curRoom.addRaw("<div class=\"broadcast-red\"><b>The server is restarting soon.</b><br />Please finish your battles quickly. No new battles can be started until the server resets in a few minutes.</div>").update();
-		}
+		});
 
 		this.logEntry(user.name + " used /slowlockdown");
 	},
@@ -2778,9 +2774,9 @@ exports.commands = {
 			return this.errorReply("We're not under lockdown right now.");
 		}
 		if (Rooms.global.lockdown === true) {
-			for (let id in Rooms.rooms) {
-				if (id !== 'global') Rooms.rooms[id].addRaw("<div class=\"broadcast-green\"><b>The server restart was canceled.</b></div>").update();
-			}
+			Rooms.rooms.forEach((curRoom, id) => {
+				if (id !== 'global') curRoom.addRaw("<div class=\"broadcast-green\"><b>The server restart was canceled.</b></div>").update();
+			});
 		} else {
 			this.sendReply("Preparation for the server shutdown was canceled.");
 		}
@@ -2796,9 +2792,9 @@ exports.commands = {
 			return this.errorReply("We're already in emergency mode.");
 		}
 		Config.emergency = true;
-		for (let id in Rooms.rooms) {
-			if (id !== 'global') Rooms.rooms[id].addRaw("<div class=\"broadcast-red\">The server has entered emergency mode. Some features might be disabled or limited.</div>").update();
-		}
+		Rooms.rooms.forEach((curRoom, id) => {
+			if (id !== 'global') curRoom.addRaw("<div class=\"broadcast-red\">The server has entered emergency mode. Some features might be disabled or limited.</div>").update();
+		});
 
 		this.logEntry(user.name + " used /emergency");
 	},
@@ -2810,9 +2806,9 @@ exports.commands = {
 			return this.errorReply("We're not in emergency mode.");
 		}
 		Config.emergency = false;
-		for (let id in Rooms.rooms) {
-			if (id !== 'global') Rooms.rooms[id].addRaw("<div class=\"broadcast-green\"><b>The server is no longer in emergency mode.</b></div>").update();
-		}
+		Rooms.rooms.forEach((curRoom, id) => {
+			if (id !== 'global') curRoom.addRaw("<div class=\"broadcast-green\"><b>The server is no longer in emergency mode.</b></div>").update();
+		});
 
 		this.logEntry(user.name + " used /endemergency");
 	},
@@ -2943,7 +2939,7 @@ exports.commands = {
 			let unitIndex = Math.floor(Math.log2(results[i]) / 10); // 2^10 base log
 			results[i] = "" + (results[i] / Math.pow(2, 10 * unitIndex)).toFixed(2) + " " + units[unitIndex];
 		}
-		this.sendReply("Main process. RSS: " + results[0] + ". Heap: " + results[1] + " / " + results[2] + ".");
+		this.sendReply("||[Main process] RSS: " + results[0] + ", Heap: " + results[1] + " / " + results[2]);
 	},
 
 	bash: function (target, room, user, connection) {
