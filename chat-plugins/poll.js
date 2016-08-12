@@ -351,7 +351,7 @@ exports.commands = {
 
 			if (target) {
 				if (!this.can('minigame', null, room)) return false;
-				if (target === 'clear') {
+				if (target === 'clear' || target === 'off') {
 					if (!room.poll.timeout) return this.errorReply("There is no timer to clear.");
 					clearTimeout(room.poll.timeout);
 					room.poll.timeout = null;
