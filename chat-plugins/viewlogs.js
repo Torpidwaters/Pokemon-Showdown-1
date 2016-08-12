@@ -199,16 +199,33 @@ function parseMessage(message, user) {
 	message = message.substr(9).trim();
 	let lineSplit = message.split('|');
 
+	let name, highlight, div;
+
 	switch (lineSplit[1]) {
 	case 'c':
-		let name = lineSplit[2];
+		name = lineSplit[2];
 		if (name === '~') break;
-		let highlight = new RegExp("\\b" + toId(user) + "\\b", 'gi');
-		let div = "chat";
+		highlight = new RegExp("\\b" + toId(user) + "\\b", 'gi');
+		div = "chat";
 		if (lineSplit.slice(3).join('|').match(highlight)) div = "chat highlighted";
 		message = '<span class="' + div + '"><small>[' + timestamp + ']</small> ' + '<small>' + name.substr(0, 1) +
 		'</small><b><font color="' + Wisp.hashColor(name.substr(1)) + '">' + name.substr(1, name.length) + ':</font></b><em>' +
 		Wisp.parseMessage(lineSplit.slice(3).join('|')) + '</em></span>';
+		break;
+	case 'c:':
+		name = lineSplit[3];
+		if (name === '~') break;
+		highlight = new RegExp("\\b" + toId(user) + "\\b", 'gi');
+		div = "chat";
+		if (lineSplit.slice(4).join('|').match(highlight)) div = "chat highlighted";
+
+		let date = new Date();
+		let components = [date.getHours(), date.getMinutes(), date.getSeconds()];
+		timestamp = components.map(function (x) { return (x < 10) ? '0' + x : x;}).join(':');
+
+		message = '<span class="' + div + '"><small>[' + timestamp + ']</small> ' + '<small>' + name.substr(0, 1) +
+		'</small>' + Wisp.nameColor(name, true) + '<em>' +
+		Wisp.parseMessage(lineSplit.slice(4).join('|')) + '</em></span>';
 		break;
 	case 'uhtml':
 		message = '<span class="notice">' + lineSplit.slice(3).join('|').trim() + '</span>';
