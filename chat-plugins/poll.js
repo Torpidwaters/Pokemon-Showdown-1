@@ -287,13 +287,64 @@ exports.commands = {
 					continue;
 				}
 				room.poll.options.get(values[toId(targetSplit[u])]).void = true;
+				room.poll.totalVotes -= room.poll.options.get(values[toId(targetSplit[u])]).votes;
+				room.poll.options.get(values[toId(targetSplit[u])]).votes = 0;
 				voided.push(targetSplit[u]);
 			}
+
+			for (let u in room.poll.voters) {
+				let option = room.poll.options.get(room.poll.voters[u]).name;
+				if (values[toId(option)]) {
+					delete room.poll.voters[u];
+				}
+			}
+
+			for (let u in room.poll.voterIps) {
+				let option = room.poll.options.get(room.poll.voterIps[u]).name;
+				if (values[toId(option)]) {
+					delete room.poll.voterIps[u];
+				}
+			}
+
 			room.poll.update(true);
 			if (invalid.length > 0) this.sendReply("The following options are not valid options to void: " + invalid.join(', '));
 			if (voided.length > 0) this.addModCommand(user.name + " has voided the following poll options: " + voided.join(', '));
 		},
 		voidhelp: ["/poll void [option] - Voids a poll option. You can specify multiple options by seperating them with a comma."],
+
+		unvoid: function (target, room, user) {
+			if (!room.poll) return this.errorReply("There is no poll running in this room.");
+			if (!target) return this.parse('/help poll void');
+			if (!this.can('minigame', null, room)) return false;
+			let targetSplit = target.split(',');
+			for (let u in targetSplit) targetSplit[u] = targetSplit[u].trim();
+
+			if (targetSplit.length > 10) return this.errorReply("You can't unvoid more than 10 options at a time.");
+
+			let values = [];
+			let count = 1;
+			let voided = [];
+			let invalid = [];
+
+			room.poll.options.forEach(function (obj) {
+				values[toId(obj.name)] = count;
+				count++;
+			});
+			for (let u in targetSplit) {
+				if (!values[toId(targetSplit[u])]) {
+					invalid.push(targetSplit[u]);
+					continue;
+				}
+				if (!room.poll.options.get(values[toId(targetSplit[u])]).void) continue;
+				room.poll.options.get(values[toId(targetSplit[u])]).void = false;
+				voided.push(targetSplit[u]);
+			}
+
+			room.poll.update(true);
+			if (invalid.length > 0) this.sendReply("The following options are not valid options to unvoid: " + invalid.join(', '));
+			if (voided.length > 0) this.addModCommand(user.name + " has unvoided the following poll options: " + voided.join(', '));
+		},
+		unvoidhelp: ["/poll unvoid [option] - Undoes /poll void. You can specify multiple options by seperating them with a comma."],
 
 		timer: function (target, room, user) {
 			if (!room.poll) return this.errorReply("There is no poll running in this room.");
