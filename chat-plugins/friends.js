@@ -86,9 +86,9 @@ function showFriends(target, friends, self) {
 
 function friendsNotify(user, offline) {
 	user = toId(user);
-	if (!Users(user) || !Users(user).connected) return;
 	Wisp.database.all("SELECT userid FROM friends WHERE friend=$userid", {$userid: user}, function (err, rows) {
 		if (err) return console.log("friendsNotify: " + err);
+		if (!Users(user) || !Users(user).connected) return;
 		if (rows.length > 0) {
 			for (let row in rows) {
 				if (!Users(rows[row].userid) || !Users(rows[row].userid).connected) continue;
