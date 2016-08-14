@@ -293,6 +293,7 @@ exports.commands = {
 			}
 
 			for (let u in room.poll.voters) {
+				if (!room.poll.options.get(room.poll.voters[u])) continue;
 				let option = room.poll.options.get(room.poll.voters[u]).name;
 				if (values[toId(option)]) {
 					delete room.poll.voters[u];
@@ -300,6 +301,7 @@ exports.commands = {
 			}
 
 			for (let u in room.poll.voterIps) {
+				if (!room.poll.options.get(room.poll.voters[u])) continue;
 				let option = room.poll.options.get(room.poll.voterIps[u]).name;
 				if (values[toId(option)]) {
 					delete room.poll.voterIps[u];
