@@ -581,7 +581,7 @@ exports.commands = {
 			Economy.readMoney(user.userid, money => {
 				if (money < room.shop[toId(item)].price) return this.sendReply('You don\'t have enough bucks to purchase a ' + item + '. You need ' + ((money - room.shop[toId(item)].price) * -1) + ' more bucks.');
 				if (!room.shopBank) room.shopBank = room.founder;
-				this.parse('/transferbucks ' + room.shopBank + ',' + room.shop[toId(item)].price);
+				this.parse('/confirmtransferbucks ' + room.shopBank + ',' + room.shop[toId(item)].price);
 				fs.appendFile('logs/roomshop_' + room.id + '.txt', '[' + new Date().toJSON() + '] ' + user.name + ' has purchased a ' +
 					room.shop[toId(item)].price + ' for ' + room.shop[toId(item)].price + ' ' + ((price === 1) ? " buck." : " bucks.") + '.\n'
 				);
