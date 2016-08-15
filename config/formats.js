@@ -490,6 +490,13 @@ exports.Formats = [
 		],
 	},
 	{
+		name: "Mono Ubers",
+		section: "Other Metagames",
+
+		ruleset: ['Pokemon', 'Standard', 'Swagger Clause', 'Team Preview', 'Mega Rayquaza Clause', 'Same Type Clause'],
+		banlist: [],
+	},
+	{
 		name: "Monotype",
 		desc: [
 			"All Pok&eacute;mon on a team must share a type.",
