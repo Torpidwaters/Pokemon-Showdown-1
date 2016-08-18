@@ -202,7 +202,61 @@ function toTitleCase(str) {
 cachePacks();
 cacheRarity();
 
+function claimPackPopup(user, message) {
+	if (!user.lastClaimCmd) user.lastClaimCmd = "claimpack2";
+
+	let cspacks = [];
+	for (let i in shop) {
+		if (shop[i][1] !== 10) continue;
+		cspacks.push(i);
+	}
+
+	let cmd = (user.lastClaimCmd === "claimpack" ? "claimpack2" : "claimpack");
+	let output = "";
+	if (message) output += message + "<br />";
+	output += '<small>(note: you can use /claimpacks to return to this popup)</small><br />';
+	output += '<table border="0" cellpadding="3" cellspacing="0">';
+	let count = 0;
+	for (let u in cspacks) {
+		if (count === 0) output += '<tr>';
+		output += '<td><button name="send" value="/' + cmd + ' ' + toId(cspacks[u]) + '">' + Tools.escapeHTML(cspacks[u]) + '</button></td>';
+		count++;
+		if (count >= 5) {
+			output += '</tr>';
+			count = 0;
+		}
+	}
+	user.popup("|wide||modal||html|" + output);
+}
+Wisp.claimPackPopup = claimPackPopup;
+
 exports.commands = {
+	claimpacks: function (target, room, user) {
+		if (!user.claimPacks || user.claimPacks < 1) return this.errorReply("You have no packs to claim.");
+		claimPackPopup(user);
+	},
+
+	claimpack2: 'claimpack',
+	claimpack: function (target, room, user, connection, cmd) {
+		if (!target) return this.parse("/help claimpack");
+		if (!user.claimPacks || user.claimPacks < 1) return user.popup("You need to purchase a ticket before you can claim packs.");
+		if (user.lastClaimCmd && user.lastClaimCmd === cmd) return;
+		let cspacks = [];
+		for (let i in shop) cspacks.push(toId(i));
+		if (!cspacks.includes(toId(target))) return user.popup("That's not a valid pack to claim.");
+
+		user.lastClaimCmd = cmd;
+		user.claimPacks--;
+
+		if (!userPacks[user.userid]) userPacks[user.userid] = [];
+		userPacks[user.userid].push(toId(target));
+
+		this.sendReplyBox('You have claimed the pack "' + Tools.escapeHTML(target) + '"<br /><button name="send" value="/openpack ' + toId(target) + '">Use <b>/openpack ' + toId(target) + '</b> to open</button>');
+		if (user.claimPacks > 0) return claimPackPopup(user, "You have " + user.claimPacks + " more " + (user.claimPacks === 1 ? "pack" : "packs") + " to claim.");
+		user.popup("|modal|You have claimed all the packs from your ticket. See /packs to open them.");
+	},
+	claimpackhelp: ["/claimpack [pack] - Claims a psgo pack after you've bought a ticket."],
+
 	psgo: {
 		set: 'add',
 		add: function (target, room, user) {
