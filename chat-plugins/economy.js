@@ -1,7 +1,7 @@
 'use strict';
 
 Wisp.database = new sqlite3.Database('config/users.db', function () {
-	Wisp.database.run("CREATE TABLE if not exists users (userid TEXT, name TEXT, bucks INTEGER, lastSeen INTEGER, onlineTime INTEGER, credits INTEGER, title TEXT, notifystatus INTEGER)");
+	Wisp.database.run("CREATE TABLE if not exists users (userid TEXT, name TEXT, bucks INTEGER, lastSeen INTEGER, onlineTime INTEGER, credits INTEGER, title TEXT, notifystatus INTEGER, background TEXT)");
 	Wisp.database.run("CREATE TABLE if not exists friends (id integer primary key, userid TEXT, friend TEXT)");
 });
 
@@ -782,7 +782,9 @@ exports.commands = {
 				if (date) regdate = regdate = moment(date).format("MMMM DD, YYYY");
 				Wisp.lastSeen(userid, online => {
 					Wisp.getTitle(userid, title => {
-						showProfile(bucks, regdate, online, title);
+						Wisp.getBackground(userid, background => {
+							showProfile(bucks, regdate, online, title, background);
+						});
 					});
 				});
 			});
@@ -791,11 +793,12 @@ exports.commands = {
 			let leagueRank = Wisp.getLeagueRank(userid);
 
 			let self = this;
-			function showProfile(bucks, regdate, lastOnline, title) {
+			function showProfile(bucks, regdate, lastOnline, title, background) {
 				lastOnline = (lastOnline ? moment(lastOnline).format("MMMM Do YYYY, h:mm:ss A") + ' EST. (' + moment(lastOnline).fromNow() + ')' : "Never");
 				if (targetUser && targetUser.connected && targetUser.lastActive) lastOnline = moment(targetUser.lastActive).fromNow();
-				let profile = '';
-				profile += '<div style="float: left; width: 75%;"> <img src="' + avatar + '" height=80 width=80 align=left>';
+				let profile = '|raw|';
+				profile += '<div class="infobox"' + ((background && background !== '') ? ' style="background: url&quot;' + Tools.escapeHTML(background) + '&quot;); background-size: contain;">' : '>');
+				profile += '<div style="float: left; width: 500px; background: rgba(255, 255, 255, 0.8); border-radius: 25px; padding: 10px;"> <img src="' + avatar + '" height=80 width=80 align=left>';
 				profile += '&nbsp;<font color=#b30000><b>Name: </font>' + Wisp.nameColor(userid, true) + (title === "" ? "" : " (" + title + ")") + flag + '<br />';
 				profile += '&nbsp;<font color=#b30000><b>Registered: </font></b>' + regdate + '<br />';
 				profile += '&nbsp;<font color=#b30000><b>Rank: </font></b>' + userGroup + (Users.vips[userid] ? ' (<font color=#6390F0><b>VIP User</b></font>)' : '') + '<br />';
@@ -803,9 +806,10 @@ exports.commands = {
 				if (bucks) profile += '&nbsp;<font color=#b30000><b>Bucks: </font></b>' + bucks + '<br />';
 				if (friendCode) profile += '&nbsp;<font color=#b30000><b>Friendcode: </font></b>' + friendCode + '<br />';
 				profile += '&nbsp;<font color=#b30000><b>Last ' + (targetUser && targetUser.connected ? 'Active' : 'Online') + ': </font></b> ' + lastOnline;
-				profile += '</div><div style="float: left; text-align: center; border-radius: 12px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2) inset; margin: 2px 2px 2px 0px" class="card-button">' + badges() + '</div>';
+				profile += '</div><div style="position: relative; left: 50px; background: rgba(255, 255, 255, 0.8);float: left; text-align: center; border-radius: 12px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2) inset; margin: 2px 2px 2px 0px" class="card-button">' + badges() + '</div>';
 				profile += '<br clear="all">';
-				self.sendReplyBox(profile);
+				profile += '</div>';
+				self.sendReply(profile);
 				room.update();
 			}
 		});

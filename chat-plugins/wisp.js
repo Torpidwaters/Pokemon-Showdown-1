@@ -1049,6 +1049,51 @@ exports.commands = {
 		this.logModCommand(user.name + " staff declared: " + target + " (id: " + id + ")");
 	},
 	staffdeclarehelp: ['/staffdeclare - Declares a message only visible to Staff.'],
+
+	background: {
+		set: function (target, room, user) {
+			if (!this.can('background')) return false;
+			if (!target) return this.parse('/help background');
+			let targets = target.split(',');
+			for (let u in targets) targets[u] = targets[u].trim();
+			if (!targets[1]) return this.parse('/help background');
+
+			let targetUser = Users(targets[0]);
+			let image = targets[1];
+
+			if (!targetUser || !targetUser.connected) return this.errorReply(target[0] + " is not online");
+			if (!image) return this.errorReply("Please specify an image to set.");
+			if (image.length > 100) return this.errorReply("Image URLs may not be longer than 100 characters.");
+
+			Wisp.setBackground(targetUser.userid, image);
+			Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has set " + Wisp.nameColor(targetUser.name, true) + "'s profile background to: " + Tools.escapeHTML(image));
+			Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has set " + Wisp.nameColor(targetUser.name, true) + "'s profile background to: " + Tools.escapeHTML(image));
+
+			this.sendReply("You've set " + targetUser.name + "'s profile background.");
+		},
+
+		delete: function (target, room, user) {
+			if (!this.can('background')) return false;
+			if (!target) return this.parse('/help background');
+
+			let targetUser = Users(target);
+
+			if (!targetUser || !targetUser.connected) return this.errorReply(target[0] + " is not online");
+
+			Wisp.setBackground(targetUser.userid, "");
+			Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has removed " + Wisp.nameColor(targetUser.name, true) + "'s profile background");
+			Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has removed " + Wisp.nameColor(targetUser.name, true) + "'s profile background");
+
+			this.sendReply("You've removed " + targetUser.name + "'s profile background.");
+		},
+		'': function (target, room, user) {
+			return this.parse('/help background');
+		},
+	},
+	backgroundhelp: [
+		"/background set [user], [image] - Sets a users profile background.",
+		"/background delete [user] - Deletes a users profile background.",
+	],
 };
 
 Object.assign(Wisp, {
@@ -1197,6 +1242,24 @@ Object.assign(Wisp, {
 					saveRegdateCache();
 				}
 				callback((date === 0 ? false : date));
+			});
+		});
+	},
+
+	getBackground: function (user, callback) {
+		let userid = toId(user);
+		Wisp.database.all("SELECT background FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
+			if (err) return console.log("getBackground: " + err);
+			callback((rows[0] ? rows[0].background : false));
+		});
+	},
+
+	setBackground: function (user, image) {
+		let userid = toId(user);
+		Wisp.database.run("UPDATE users SET background=$background WHERE userid=$userid;", {$background: image, $userid: userid}, function (err) {
+			if (err) return console('setBackground 1: ' + err);
+			Wisp.database.run("INSERT OR IGNORE INTO users (userid,background) VALUES ($userid, $background)", {$userid: userid, $background: image}, function (err) {
+				if (err) return console.log("setBackground 2: " + err);
 			});
 		});
 	},
