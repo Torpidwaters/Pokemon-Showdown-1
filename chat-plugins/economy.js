@@ -757,6 +757,7 @@ exports.commands = {
 
 	profile: function (target, room, user) {
 		if (!target) target = user.name;
+		if (toId(target) === 'constructor') return this.errorReply("lol jd can't code");
 		if (toId(target).length > 19) return this.sendReply("Usernames may not be more than 19 characters long.");
 		if (toId(target).length < 1) return this.sendReply(target + " is not a valid username.");
 		if (!this.runBroadcast()) return;
