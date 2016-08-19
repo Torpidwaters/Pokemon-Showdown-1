@@ -26,6 +26,7 @@ let prices = {
 	"title": 30,
 	"avatar": 35,
 	"infobox": 40,
+	"background": 40,
 	"emote": 50,
 	"roomshop": 55,
 	"room": 75,
@@ -439,6 +440,20 @@ exports.commands = {
 					});
 				});
 				break;
+			case 'background':
+				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a profile background.");
+				if (!targetSplit[1]) return this.sendReply("Please specify the image you would like with /buy background, [image]");
+				Economy.writeMoney(user.userid, prices[itemid] * -1, () => {
+					Economy.readMoney(user.userid, amount => {
+						Economy.logTransaction(user.userid + " has purchased a custom profile background for " + prices[itemid] + " bucks. Image: " + targetSplit[1]);
+						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased a profile background: <a href=\"" + Tools.escapeHTML(targetSplit[1]) + "\">" + Tools.escapeHTML(targetSplit[1]) +
+						"</a><br /><button name=\"send\" value=\"/background set " + user.userid + ", " + targetSplit[1] + "\">Click to add</button>");
+						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased a profile background: " + Tools.escapeHTML(targetSplit[1])).update();
+						this.sendReply("You have purchased a profile background. It will be added shortly.");
+					});
+				});
+				matched = true;
+				break;
 			case 'icon':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase an icon.");
 				if (!targetSplit[1]) return this.sendReply("Please specify the image you would like as your icon with /buy icon, image url.");
@@ -505,6 +520,7 @@ exports.commands = {
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy title">Title</button></td><td class="shop-td des">Buys a user title that displays beside your name in /profile</td><td class="shop-td pri">' + prices['title'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy avatar">Avatar</button></td><td class="shop-td des">Buys a custom avatar to be applied to your name (You supply, must be .png or .gif format. Images larger than 80x80 may not show correctly.)</td><td class="shop-td pri">' + prices['avatar'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy infobox">Infobox</button></td><td class="shop-td des">Buys an infobox that will be viewable with a command such as /tailz.</td><td class="shop-td pri">' + prices['infobox'] + '</td></tr>' +
+			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy background">Background</button></td><td class="shop-td des">Buys a custom background for your /profile</td><td class="shop-td pri">' + prices['background'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy emote">Emote</button></td><td class="shop-td des">Buys an emoticon for you (and everyone else) to use in the chat.</td><td class="shop-td pri">' + prices['emote'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy roomshop">Room Shop</button></td><td class="shop-td des">Buys a fully customizable shop for your room. The bucks earned from purchases go to the room founder or room bank.</td><td class="shop-td pri">' + prices['roomshop'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy room">Room</button></td><td class="shop-td des">Buys a chatroom for you to own.</td><td class="shop-td pri">' + prices['room'] + '</td></tr>' +
