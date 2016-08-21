@@ -149,7 +149,7 @@ exports.commands = {
 			output.unshift("Displaying the last " + (lines.length > target ? target : lines.length) + " lines:");
 			output = output.join('\n');
 		}
-		user.popup(output);
+		user.popup("|wide|" + output);
 	},
 
 	atm: 'wallet',
