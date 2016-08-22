@@ -467,7 +467,7 @@ exports.Formats = [
 
 		searchShow: false,
 		maxLevel: 100,
-		ruleset: ['Team Preview'],
+		ruleset: ['Standard', 'Team Preview', 'Swagger Clause', 'Baton Pass Clause'],
 	},
 	{
 		name: "1v1",
