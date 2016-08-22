@@ -317,7 +317,7 @@ exports.commands = {
 						count++;
 					}
 					this.sendReplyBox(output);
-					return room.update;
+					return room.update();
 				}
 			});
 		});
