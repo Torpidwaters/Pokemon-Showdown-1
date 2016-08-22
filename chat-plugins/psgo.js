@@ -260,7 +260,7 @@ exports.commands = {
 	psgo: {
 		set: 'add',
 		add: function (target, room, user) {
-			if (!this.can('hotpatch') && !managers.includes(user.userid)) return this.errorReply("Access denied.");
+			if (!this.can('hotpatch') || !managers.includes(user.userid)) return this.errorReply("Access denied.");
 			if (!target) return this.parse("/help psgo");
 			let targets = target.split(',');
 			for (let u in targets) targets[u] = targets[u].trim();
@@ -303,7 +303,7 @@ exports.commands = {
 			this.parse("/card " + title);
 		},
 		edit: function (target, room, user) {
-			if (!this.can('hotpatch') && !managers.includes(user.userid)) return this.errorReply("Access denied.");
+			if (!this.can('hotpatch') || !managers.includes(user.userid)) return this.errorReply("Access denied.");
 			if (!target) return this.parse("/help psgo");
 			let targets = target.split(',');
 			for (let u in targets) targets[u] = targets[u].trim();
@@ -373,7 +373,7 @@ exports.commands = {
 		remove: 'delete',
 		rem: 'delete',
 		delete: function (target, room, user) {
-			if (!this.can('hotpatch') && !managers.includes(user.userid)) return this.errorReply("Access denied.");
+			if (!this.can('hotpatch') || !managers.includes(user.userid)) return this.errorReply("Access denied.");
 			if (!target) return this.parse("/help psgo");
 			let card = toId(target);
 			if (!cards[card]) return this.errorReply("That card does not exist.");
@@ -423,10 +423,10 @@ exports.commands = {
 		},
 		pack: {
 			add: function (target, room, user) {
-				if (!this.can('hotpatch') && !managers.includes(user.userid)) return this.errorReply("Access denied.");
+				if (!this.can('hotpatch') || !managers.includes(user.userid)) return this.errorReply("Access denied.");
 				if (!target) return this.errorReply("Please specify a name for the pack.");
 				if (target.length < 1) return this.errorReply("Pack names may not be less than one character long.");
-				if (target.length > 20) return this.errorReply("Pack names may not be longer than 20 characters.");
+				if (target.length > 40) return this.errorReply("Pack names may not be longer than 40 characters.");
 				if (cleanPacks.includes(toId(target))) return this.errorReply("That pack already exists.");
 				packs.push(target);
 				fs.writeFileSync('config/psgo/packs.csv', packs.join(','));
@@ -435,7 +435,7 @@ exports.commands = {
 				log(user.name + " has added a pack named " + target);
 			},
 			delete: function (target, room, user) {
-				if (!this.can('hotpatch') && !managers.includes(user.userid)) return this.errorReply("Access denied.");
+				if (!this.can('hotpatch') || !managers.includes(user.userid)) return this.errorReply("Access denied.");
 				if (!target) return this.errorReply("Please specify a pack to delete.");
 				if (!cleanPacks.includes(toId(target))) return this.errorReply("That pack does not exist.");
 				packs.splice(packs.indexOf(toId(target)), 1);
@@ -447,7 +447,7 @@ exports.commands = {
 		},
 		shop: {
 			add: function (target, room, user) {
-				if (!this.can('hotpatch') && !managers.includes(user.userid)) return this.errorReply("Access denied.");
+				if (!this.can('hotpatch') || !managers.includes(user.userid)) return this.errorReply("Access denied.");
 				if (!target) return this.parse("/help psgo");
 				let targets = target.split(',');
 				for (let u in targets) targets[u] = targets[u].trim();
@@ -469,7 +469,7 @@ exports.commands = {
 				this.sendReply("You've added the pack " + pack + " to the shop.");
 			},
 			delete: function (target, room, user) {
-				if (!this.can('hotpatch') && !managers.includes(user.userid)) return this.errorReply("Access denied.");
+				if (!this.can('hotpatch') || !managers.includes(user.userid)) return this.errorReply("Access denied.");
 				if (!target) return this.parse("/help psgo");
 				if (!shop[target]) return this.errorReply("That pack isn't currently in the shop.");
 
