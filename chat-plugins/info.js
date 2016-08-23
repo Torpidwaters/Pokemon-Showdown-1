@@ -13,6 +13,10 @@
 'use strict';
 
 const path = require('path');
+const geoip = require('geoip-ultralight');
+const moment = require('moment');
+geoip.startWatchingDataUpdate();
+let serverIp = '158.69.196.64';
 
 exports.commands = {
 
@@ -33,6 +37,10 @@ exports.commands = {
 		}
 
 		let buf = '<strong class="username"><small style="display:none">' + targetUser.group + '</small>' + Tools.escapeHTML(targetUser.name) + '</strong> ' + (!targetUser.connected ? ' <em style="color:gray">(offline)</em>' : '');
+		let flag = ' ', country = geoip.lookupCountry(targetUser.latestIp);
+		if (country) flag = ' <img title = "' + country + '" src = "http://' + serverIp + ':' + Config.port + '/flags/' + country.toLowerCase() + '.gif">';
+		buf += flag;
+
 		let roomauth = '';
 		if (room.auth && targetUser.userid in room.auth) roomauth = room.auth[targetUser.userid];
 		if (Config.groups[roomauth] && Config.groups[roomauth].name) {
@@ -68,18 +76,19 @@ exports.commands = {
 			}
 		}
 		buf += '<br />Rooms: ' + (publicrooms || '<em>(no public rooms)</em>');
+		if (targetUser.connected && targetUser.lastActive) buf += '<br />Last Active: ' + moment(targetUser.lastActive).fromNow();
 
 		if (!showAll) {
 			return this.sendReplyBox(buf);
 		}
 		buf += '<br />';
 		if (user.can('alts', targetUser) || user.can('alts') && user === targetUser) {
-			let alts = targetUser.getAlts(true);
+			let alts = targetUser.getAltUsers(true);
 			let output = Object.keys(targetUser.prevNames).join(", ");
 			if (output) buf += "<br />Previous names: " + Tools.escapeHTML(output);
 
 			for (let j = 0; j < alts.length; ++j) {
-				let targetAlt = Users.get(alts[j]);
+				let targetAlt = alts[j];
 				if (!targetAlt.named && !targetAlt.connected) continue;
 				if (targetAlt.group === '~' && user.group !== '~') continue;
 
@@ -100,6 +109,13 @@ exports.commands = {
 					buf += " - host is permanently locked for being a proxy";
 					break;
 				}
+				let punishment = Punishments.userids.get(targetUser.locked);
+				if (punishment) {
+					let expiresIn = new Date(punishment[2]).getTime() - Date.now();
+					let expiresDays = Math.round(expiresIn / 1000 / 60 / 60 / 24);
+					buf += ' (expires in around ' + expiresDays + ' day' + (expiresDays === 1 ? '' : 's') + ')';
+					if (punishment[3]) buf += ' (reason: ' + punishment[3] + ')';
+				}
 			}
 			if (targetUser.semilocked) {
 				buf += '<br />Semilocked: ' + targetUser.semilocked;
@@ -119,6 +135,7 @@ exports.commands = {
 
 		if (user.can('alts', targetUser) || (room.isPrivate !== true && user.can('mute', targetUser, room) && targetUser.userid in room.users)) {
 			let bannedFrom = "";
+			let mutedIn = "";
 			for (let i = 0; i < Rooms.global.chatRooms.length; i++) {
 				let thisRoom = Rooms.global.chatRooms[i];
 				if (!thisRoom || thisRoom.isPrivate === true) continue;
@@ -126,21 +143,29 @@ exports.commands = {
 				if (roomBanned) {
 					if (bannedFrom) bannedFrom += ", ";
 					bannedFrom += '<a href="/' + thisRoom + '">' + thisRoom + '</a> (' + roomBanned + ')';
+				} else {
+					let muted = thisRoom.isMuted(targetUser);
+					if (muted) {  // besides roombans, mutes also help to determine if a user is hitting multiple rooms
+						if (mutedIn) mutedIn += ", ";
+						mutedIn += '<a href="/' + thisRoom + '">' + thisRoom + '</a> (' + muted + ')';
+					}
 				}
 			}
 			if (bannedFrom) buf += '<br />Banned from: ' + bannedFrom;
+			if (mutedIn) buf += '<br />Muted in: ' + mutedIn;
 		}
 		this.sendReplyBox(buf);
 	},
 	whoishelp: ["/whois - Get details on yourself: alts, group, IP address, and rooms.",
-		"/whois [username] - Get details on a username: alts (Requires: % @ & ~), group, IP address (Requires: @ & ~), and rooms."],
+		"/whois [username] - Get details on a username: alts (Requires: % @ * & ~), group, IP address (Requires: @ * & ~), and rooms."],
 
 	host: function (target, room, user, connection, cmd) {
 		if (!target) return this.parse('/help host');
 		if (!this.can('rangeban')) return;
-		if (!/[0-9.]+/.test(target)) return this.errorReply('You must pass a valid IPv4 IP to /host.');
-		Dnsbl.reverse(target, (err, hosts) => {
-			this.sendReply('IP ' + target + ': ' + (hosts ? hosts[0] : 'NULL'));
+		target = target.trim();
+		if (!/^[0-9.]+$/.test(target)) return this.errorReply('You must pass a valid IPv4 IP to /host.');
+		Dnsbl.reverse(target).then(host => {
+			this.sendReply('IP ' + target + ': ' + (host || "ERROR"));
 		});
 	},
 	hosthelp: ["/host [ip] - Gets the host for a given IP. Requires: & ~"],
@@ -300,6 +325,7 @@ exports.commands = {
 				details = {
 					"Priority": move.priority,
 					"Gen": move.gen,
+					"Contest Condition": move.contestType,
 				};
 
 				if (move.secondary || move.secondaries) details["&#10003; Secondary effect"] = "";
@@ -368,7 +394,7 @@ exports.commands = {
 		this.sendReply(buffer);
 	},
 	datahelp: ["/data [pokemon/item/move/ability] - Get details on this pokemon/item/move/ability/nature.",
-		"!data [pokemon/item/move/ability] - Show everyone these details. Requires: + % @ # & ~"],
+		"!data [pokemon/item/move/ability] - Show everyone these details. Requires: + % @ * # & ~"],
 
 	dt: 'details',
 	details: function (target) {
@@ -376,7 +402,7 @@ exports.commands = {
 		this.run('data');
 	},
 	detailshelp: ["/details [pokemon] - Get additional details on this pokemon/item/move/ability/nature.",
-		"!details [pokemon] - Show everyone these details. Requires: + % @ # & ~"],
+		"!details [pokemon] - Show everyone these details. Requires: + % @ * # & ~"],
 
 	weaknesses: 'weakness',
 	weak: 'weakness',
@@ -438,8 +464,8 @@ exports.commands = {
 	},
 	weaknesshelp: ["/weakness [pokemon] - Provides a Pok\u00e9mon's resistances, weaknesses, and immunities, ignoring abilities.",
 		"/weakness [type 1]/[type 2] - Provides a type or type combination's resistances, weaknesses, and immunities, ignoring abilities.",
-		"!weakness [pokemon] - Shows everyone a Pok\u00e9mon's resistances, weaknesses, and immunities, ignoring abilities. Requires: + % @ # & ~",
-		"!weakness [type 1]/[type 2] - Shows everyone a type or type combination's resistances, weaknesses, and immunities, ignoring abilities. Requires: + % @ # & ~"],
+		"!weakness [pokemon] - Shows everyone a Pok\u00e9mon's resistances, weaknesses, and immunities, ignoring abilities. Requires: + % @ * # & ~",
+		"!weakness [type 1]/[type 2] - Shows everyone a type or type combination's resistances, weaknesses, and immunities, ignoring abilities. Requires: + % @ * # & ~"],
 
 	eff: 'effectiveness',
 	type: 'effectiveness',
@@ -559,7 +585,7 @@ exports.commands = {
 				continue;
 			}
 
-			return this.sendReply("No type or move '" + targets[i] + "' found.");
+			return this.errorReply("No type or move '" + targets[i] + "' found.");
 		}
 		if (sources.length === 0) return this.errorReply("No moves using a type table for determining damage were specified.");
 		if (sources.length > 4) return this.errorReply("Specify a maximum of 4 moves or types.");
@@ -905,13 +931,14 @@ exports.commands = {
 			"+ <b>Voice</b> - They can use ! commands like !groups, and talk during moderated chat<br />" +
 			"% <b>Driver</b> - The above, and they can mute. Global % can also lock users and check for alts<br />" +
 			"@ <b>Moderator</b> - The above, and they can ban users<br />" +
+			"* <b>Bot</b> - Like Moderator, but makes it clear that this user is a bot<br />" +
 			"&amp; <b>Leader</b> - The above, and they can promote to moderator and force ties<br />" +
 			"# <b>Room Owner</b> - They are leaders of the room and can almost totally control it<br />" +
 			"~ <b>Administrator</b> - They can do anything, like change what this message says"
 		);
 	},
 	groupshelp: ["/groups - Explains what the + % @ # & next to people's names mean.",
-		"!groups - Shows everyone that information. Requires: + % @ # & ~"],
+		"!groups - Shows everyone that information. Requires: + % @ * # & ~"],
 
 	repo: 'opensource',
 	repository: 'opensource',
@@ -927,8 +954,9 @@ exports.commands = {
 		);
 	},
 	opensourcehelp: ["/opensource - Links to PS's source code repository.",
-		"!opensource - Show everyone that information. Requires: + % @ # & ~"],
+		"!opensource - Show everyone that information. Requires: + % @ * # & ~"],
 
+/*
 	staff: function (target, room, user) {
 		if (!this.runBroadcast()) return;
 		this.sendReplyBox("<a href=\"https://www.smogon.com/sim/staff_list\">Pok&eacute;mon Showdown Staff List</a>");
@@ -957,13 +985,13 @@ exports.commands = {
 			);
 		}
 	},
-
+*/
 	avatars: function (target, room, user) {
 		if (!this.runBroadcast()) return;
 		this.sendReplyBox("You can <button name=\"avatars\">change your avatar</button> by clicking on it in the <button name=\"openOptions\"><i class=\"fa fa-cog\"></i> Options</button> menu in the upper right. Custom avatars are only obtainable by staff.");
 	},
 	avatarshelp: ["/avatars - Explains how to change avatars.",
-		"!avatars - Show everyone that information. Requires: + % @ # & ~"],
+		"!avatars - Show everyone that information. Requires: + % @ * # & ~"],
 
 	introduction: 'intro',
 	intro: function (target, room, user) {
@@ -977,7 +1005,7 @@ exports.commands = {
 		);
 	},
 	introhelp: ["/intro - Provides an introduction to competitive Pok\u00e9mon.",
-		"!intro - Show everyone that information. Requires: + % @ # & ~"],
+		"!intro - Show everyone that information. Requires: + % @ * # & ~"],
 
 	mentoring: 'smogintro',
 	smogonintro: 'smogintro',
@@ -999,7 +1027,7 @@ exports.commands = {
 		);
 	},
 	calchelp: ["/calc - Provides a link to a damage calculator",
-		"!calc - Shows everyone a link to a damage calculator. Requires: + % @ # & ~"],
+		"!calc - Shows everyone a link to a damage calculator. Requires: + % @ * # & ~"],
 
 	capintro: 'cap',
 	cap: function (target, room, user) {
@@ -1013,7 +1041,7 @@ exports.commands = {
 		);
 	},
 	caphelp: ["/cap - Provides an introduction to the Create-A-Pok&eacute;mon project.",
-		"!cap - Show everyone that information. Requires: + % @ # & ~"],
+		"!cap - Show everyone that information. Requires: + % @ * # & ~"],
 
 	gennext: function (target, room, user) {
 		if (!this.runBroadcast()) return;
@@ -1062,7 +1090,7 @@ exports.commands = {
 		}
 	},
 	othermetashelp: ["/om - Provides links to information on the Other Metagames.",
-		"!om - Show everyone that information. Requires: + % @ # & ~"],
+		"!om - Show everyone that information. Requires: + % @ * # & ~"],
 
 	banlists: 'formathelp',
 	tier: 'formathelp',
@@ -1088,7 +1116,7 @@ exports.commands = {
 		let format = Tools.getFormat(targetId);
 		if (format.effectType === 'Format') formatList = [targetId];
 		if (!formatList) {
-			if (this.broadcasting && (cmd !== 'om' && cmd !== 'othermetas')) return this.sendReply("'" + target + "' is not a format. This command's search mode is too spammy to broadcast.");
+			if (this.broadcasting && (cmd !== 'om' && cmd !== 'othermetas')) return this.errorReply("'" + target + "' is not a format. This command's search mode is too spammy to broadcast.");
 			formatList = Object.keys(Tools.data.Formats).filter(formatid => Tools.data.Formats[formatid].effectType === 'Format');
 		}
 
@@ -1108,7 +1136,7 @@ exports.commands = {
 			break;
 		}
 
-		if (!totalMatches) return this.sendReply("No " + (target ? "matched " : "") + "formats found.");
+		if (!totalMatches) return this.errorReply("No " + (target ? "matched " : "") + "formats found.");
 		if (totalMatches === 1) {
 			let format = Tools.getFormat(Object.values(sections)[0].formats[0]);
 			let formatType = (format.gameType || "singles");
@@ -1133,8 +1161,8 @@ exports.commands = {
 	},
 
 	roomhelp: function (target, room, user) {
-		if (room.id === 'lobby' || room.battle) return this.sendReply("This command is too spammy for lobby/battles.");
 		if (!this.runBroadcast()) return;
+		if (this.broadcasting && (room.id === 'lobby' || room.battle)) return this.errorReply("This command is too spammy for lobby/battles.");
 		this.sendReplyBox(
 			"Room drivers (%) can use:<br />" +
 			"- /warn OR /k <em>username</em>: warn a user and show the Pok&eacute;mon Showdown rules<br />" +
@@ -1214,7 +1242,7 @@ exports.commands = {
 			if (!this.runBroadcast()) return;
 			this.sendReplyBox("Please follow the rules:<br />" +
 				(room.rulesLink ? "- <a href=\"" + Tools.escapeHTML(room.rulesLink) + "\">" + Tools.escapeHTML(room.title) + " room rules</a><br />" : "") +
-				"- <a href=\"https://pokemonshowdown.com/rules\">" + (room.rulesLink ? "Global rules" : "Rules") + "</a>");
+				"- <a href=\"http://forums.koffee.rocks/index.php?/topic/26-general-guidelines/\">" + (room.rulesLink ? "Global rules" : "Rules") + "</a>");
 			return;
 		}
 		if (!this.can('roommod', null, room)) return;
@@ -1231,7 +1259,7 @@ exports.commands = {
 		}
 	},
 	ruleshelp: ["/rules - Show links to room rules and global rules.",
-		"!rules - Show everyone links to room rules and global rules. Requires: + % @ # & ~",
+		"!rules - Show everyone links to room rules and global rules. Requires: + % @ * # & ~",
 		"/rules [url] - Change the room rules URL. Requires: # & ~"],
 
 	faq: function (target, room, user) {
@@ -1261,7 +1289,7 @@ exports.commands = {
 		this.sendReplyBox(buffer.join("<br />"));
 	},
 	faqhelp: ["/faq [theme] - Provides a link to the FAQ. Add deviation, doubles, randomcap, restart, or staff for a link to these questions. Add all for all of them.",
-		"!faq [theme] - Shows everyone a link to the FAQ. Add deviation, doubles, randomcap, restart, or staff for a link to these questions. Add all for all of them. Requires: + % @ # & ~"],
+		"!faq [theme] - Shows everyone a link to the FAQ. Add deviation, doubles, randomcap, restart, or staff for a link to these questions. Add all for all of them. Requires: + % @ * # & ~"],
 
 	analysis: 'smogdex',
 	strategy: 'smogdex',
@@ -1378,7 +1406,7 @@ exports.commands = {
 		}
 	},
 	smogdexhelp: ["/analysis [pokemon], [generation], [format] - Links to the Smogon University analysis for this Pok\u00e9mon in the given generation.",
-		"!analysis [pokemon], [generation], [format] - Shows everyone this link. Requires: + % @ # & ~"],
+		"!analysis [pokemon], [generation], [format] - Shows everyone this link. Requires: + % @ * # & ~"],
 
 	veekun: function (target, broadcast, user) {
 		if (!this.runBroadcast()) return;
@@ -1395,7 +1423,7 @@ exports.commands = {
 		// Pokemon
 		if (pokemon.exists) {
 			atLeastOne = true;
-			if (pokemon.isNonstandard) return this.sendReply(pokemon.species + ' is not a real Pok\u00e9mon.');
+			if (pokemon.isNonstandard) return this.errorReply(pokemon.species + ' is not a real Pok\u00e9mon.');
 
 			let baseSpecies = pokemon.baseSpecies || pokemon.species;
 			let forme = pokemon.forme;
@@ -1431,7 +1459,7 @@ exports.commands = {
 		// Move
 		if (move.exists) {
 			atLeastOne = true;
-			if (move.isNonstandard) return this.sendReply(move.name + ' is not a real move.');
+			if (move.isNonstandard) return this.errorReply(move.name + ' is not a real move.');
 			let link = baseLink + 'moves/' + move.name.toLowerCase();
 			this.sendReplyBox("<a href=\"" + link + "\">" + move.name + " move description</a> by Veekun");
 		}
@@ -1448,7 +1476,7 @@ exports.commands = {
 		}
 	},
 	veekunhelp: ["/veekun [pokemon] - Links to Veekun website for this pokemon/item/move/ability/nature.",
-		"!veekun [pokemon] - Shows everyone this link. Requires: + % @ # & ~"],
+		"!veekun [pokemon] - Shows everyone this link. Requires: + % @ * # & ~"],
 
 	register: function () {
 		if (!this.runBroadcast()) return;
@@ -1564,7 +1592,6 @@ exports.commands = {
 		"/dice [number of dice]d[number of sides][+/-][offset] - Simulates rolling a number of dice and adding an offset to the sum, e.g., /dice 2d6+10: two standard dice are rolled; the result lies between 12 and 22.",
 		"/dice [number of dice]d[number of sides]-[H/L] - Simulates rolling a number of dice with removal of extreme values, e.g., /dice 3d8-L: rolls three 8-sided dice; the result ignores the lowest value."],
 
-	pr: 'pickrandom',
 	pick: 'pickrandom',
 	pickrandom: function (target, room, user) {
 		let options = target.split(',');
@@ -1624,18 +1651,25 @@ exports.commands = {
 		if (!target) return this.parse('/help htmlbox');
 		target = this.canHTML(target);
 		if (!target) return;
-
-		if (user.userid === 'github') {
-			if (!this.can('announce', null, room)) return;
-			if (message.charAt(0) === '!') this.broadcasting = true;
-		} else {
-			if (!this.can('declare', null, room)) return;
-			if (!this.runBroadcast('!htmlbox')) return;
-		}
+		if (!this.runBroadcast('!htmlbox')) return;
+		if (this.broadcasting) if (!this.can('declare', null, room)) return;
 
 		this.sendReplyBox(target);
 	},
-	htmlboxhelp: ["/htmlbox [message] - Displays a message, parsing HTML code contained. Requires: ~ # with global authority"],
+	addhtmlbox: function (target, room, user, connection, cmd, message) {
+		if (!target) return this.parse('/help htmlbox');
+		if (!this.canTalk()) return this.errorReply("You cannot do this while unable to talk.");
+		target = this.canHTML(target);
+		if (!target) return;
+		if (!this.can('addhtml', null, room)) return;
+
+		if (!user.can('addhtml')) {
+			target += '<div style="float:right;color:#888;font-size:8pt">[' + Tools.escapeHTML(user.name) + ']</div><div style="clear:both"></div>';
+		}
+
+		this.addBox(target);
+	},
+	htmlboxhelp: ["/htmlbox [message] - Displays a message, parsing HTML code contained. Requires: ~ # * with global authority OR * with room authority"],
 };
 
 process.nextTick(() => Tools.includeData());

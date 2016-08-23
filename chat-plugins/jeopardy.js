@@ -495,14 +495,14 @@ let commands = {
 			"edit - Edits the grid. Run this command by itself for more detailed help<br />" +
 			"export [category number], [start], [end] - Exports data from the grid. start and end are optional<br />" +
 			"import [category number], [start], [end], [data] - Imports data into the grid. start and end are optional<br />" +
-			"create [categories], [questions per category] - Creates a jeopardy match. Parameters are optional, and default to maximum values. Requires: % @ # & ~<br />" +
-			"start - Starts the match. Requires: % @ # & ~<br />" +
-			"end - Forcibly ends the match. Requires: % @ # & ~<br />" +
+			"create [categories], [questions per category] - Creates a jeopardy match. Parameters are optional, and default to maximum values. Requires: % @ * # & ~<br />" +
+			"start - Starts the match. Requires: % @ * # & ~<br />" +
+			"end - Forcibly ends the match. Requires: % @ * # & ~<br />" +
 			"adduser [user] - Add a user to the match<br />" +
 			"removeuser [user] - Remove a user from the match<br />" +
 			"select [category number], [question number] - Select a question<br />" +
 			"a/answer [answer] - Attempt to answer the question<br />" +
-			"incorrect/correct - Marks the current answer as correct or not. Requires: % @ # & ~<br />" +
+			"incorrect/correct - Marks the current answer as correct or not. Requires: % @ * # & ~<br />" +
 			"skip - Skips the current question<br />" +
 			"wager [amount] - Wager some amount of points. 'all' is also accepted"
 		);
@@ -679,7 +679,7 @@ let commands = {
 		let categoryCount = parseInt(params[0]) || MAX_CATEGORY_COUNT;
 		let questionCount = parseInt(params[1]) || MAX_QUESTION_COUNT;
 		if (categoryCount > MAX_CATEGORY_COUNT) return this.sendReply("A match with more than " + MAX_CATEGORY_COUNT + " categories cannot be created.");
-		if (questionCount > MAX_QUESTION_COUNT) return this.sendReply("A match with more than " + MAX_CATEGORY_COUNT + " questions per category cannot be created.");
+		if (questionCount > MAX_QUESTION_COUNT) return this.sendReply("A match with more than " + MAX_QUESTION_COUNT + " questions per category cannot be created.");
 
 		jeopardies[room.id] = new Jeopardy(user, room, categoryCount, questionCount);
 	},

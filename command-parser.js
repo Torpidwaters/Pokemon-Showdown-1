@@ -39,6 +39,23 @@ const BROADCAST_TOKEN = '!';
 const fs = require('fs');
 const path = require('path');
 
+exports.multiLinePattern = {
+	elements: [],
+	regexp: null,
+	register: function (elem) {
+		if (Array.isArray(elem)) {
+			elem.forEach(elem => this.elements.push(elem));
+		} else {
+			this.elements.push(elem);
+		}
+		this.regexp = new RegExp('^(' + this.elements.map(elem => '(?:' + elem + ')').join('|') + ')', 'i');
+	},
+	test: function (text) {
+		if (!this.regexp) return false;
+		return this.regexp.test(text);
+	},
+};
+
 /*********************************************************
  * Load command files
  *********************************************************/
@@ -91,8 +108,38 @@ class CommandContext {
 		this.user = options.user || null;
 		this.connection = options.connection || null;
 
-		this.targetUserName = '';
 		this.targetUser = null;
+		this.targetUsername = '';
+		this.inputUsername = '';
+	}
+
+	checkFormat(room, message) {
+		if (!room) return false;
+		if (!room.filterStretching && !room.filterCaps) return false;
+		let formatError = [];
+		// Removes extra spaces and null characters
+		message = message.trim().replace(/[ \u0000\u200B-\u200F]+/g, ' ');
+
+		let stretchMatch = room.filterStretching && message.match(/(.+?)\1{7,}/i);
+		let capsMatch = room.filterCaps && message.match(/[A-Z\s]{18,}/);
+
+		if (stretchMatch) {
+			formatError.push("too much stretching");
+		}
+		if (capsMatch) {
+			formatError.push("too many capital letters");
+		}
+		if (formatError.length > 0) {
+			return formatError.join(' and ') + ".";
+		}
+		return false;
+	}
+
+	checkSlowchat(room, user) {
+		if (!room || !room.slowchat) return true;
+		let lastActiveSeconds = (Date.now() - user.lastMessageTime) / 1000;
+		if (lastActiveSeconds < room.slowchat) return false;
+		return true;
 	}
 
 	checkBanwords(room, message) {
@@ -125,8 +172,11 @@ class CommandContext {
 			this.sendReply('|html|<div class="message-error">' + Tools.escapeHTML(message).replace(/\n/g, '<br />') + '</div>');
 		}
 	}
+	addBox(html) {
+		this.add('|html|<div class="infobox">' + html + '</div>');
+	}
 	sendReplyBox(html) {
-		this.sendReply('|raw|<div class="infobox">' + html + '</div>');
+		this.sendReply('|html|<div class="infobox">' + html + '</div>');
 	}
 	popupReply(message) {
 		this.connection.popup(message);
@@ -211,7 +261,7 @@ class CommandContext {
 
 			this.message = message;
 			this.broadcastMessage = broadcastMessage;
-			this.user.broadcasting = true;
+			this.user.broadcasting = this.cmd;
 		}
 		return true;
 	}
@@ -302,19 +352,15 @@ class CommandContext {
 			}
 			if (room && room.modchat) {
 				let userGroup = user.group;
-				if (room.auth) {
-					if (room.auth[user.userid]) {
-						userGroup = room.auth[user.userid];
-					} else if (room.isPrivate === true) {
-						userGroup = ' ';
-					}
+				if (!user.can('makeroom')) {
+					userGroup = room.getAuth(user);
 				}
 				if (room.modchat === 'autoconfirmed') {
 					if (!user.autoconfirmed && userGroup === ' ') {
 						this.errorReply("Because moderated chat is set, your account must be at least one week old and you must have won at least one ladder game to speak in this room.");
 						return false;
 					}
-				} else if (Config.groupsranking.indexOf(userGroup) < Config.groupsranking.indexOf(room.modchat) && !user.can('makeroom')) {
+				} else if (Config.groupsranking.indexOf(userGroup) < Config.groupsranking.indexOf(room.modchat)) {
 					let groupName = Config.groups[room.modchat].name || room.modchat;
 					this.errorReply("Because moderated chat is set, you must be of rank " + groupName + " or higher to speak in this room.");
 					return false;
@@ -345,14 +391,24 @@ class CommandContext {
 				return false;
 			}
 
+			if (this.checkFormat(room, message) && !user.can('mute', null, room)) {
+				this.errorReply("Your message was not sent because it contained " + this.checkFormat(room, message));
+				return false;
+			}
+
+			if (!this.checkSlowchat(room, user) && !user.can('mute', null, room)) {
+				this.errorReply("This room has slow-chat enabled. You can only talk once every " + room.slowchat + " seconds.");
+				return false;
+			}
+
 			if (!this.checkBanwords(room, message) && !user.can('mute', null, room)) {
 				this.errorReply("Your message contained banned words.");
 				return false;
 			}
 
-			if (room && room.id === 'lobby') {
+			if (room) {
 				let normalized = message.trim();
-				if ((normalized === user.lastMessage) &&
+				if (room.id === 'lobby' && (normalized === user.lastMessage) &&
 						((Date.now() - user.lastMessageTime) < MESSAGE_COOLDOWN)) {
 					this.errorReply("You can't send the same message again so soon.");
 					return false;
@@ -500,6 +556,15 @@ class CommandContext {
 			this.targetUser = null;
 			this.targetUsername = this.inputUsername;
 		}
+		return target.substr(commaIndex + 1).trim();
+	}
+	splitTargetText(target) {
+		let commaIndex = target.indexOf(',');
+		if (commaIndex < 0) {
+			this.targetUsername = target;
+			return '';
+		}
+		this.targetUsername = target.substr(0, commaIndex);
 		return target.substr(commaIndex + 1).trim();
 	}
 }
@@ -656,7 +721,9 @@ exports.uncacheTree = function (root) {
 		for (let i = 0; i < uncache.length; ++i) {
 			if (require.cache[uncache[i]]) {
 				newuncache.push.apply(newuncache,
-					require.cache[uncache[i]].children.map(cachedModule => cachedModule.id)
+					require.cache[uncache[i]].children
+						.filter(cachedModule => !cachedModule.id.endsWith('.node'))
+						.map(cachedModule => cachedModule.id)
 				);
 				delete require.cache[uncache[i]];
 			}

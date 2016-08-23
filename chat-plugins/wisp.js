@@ -5,11 +5,18 @@ const http = require('http');
 const fs = require('fs');
 const moment = require('moment');
 const nani = require('nani').init("niisama1-uvake", "llbgsBx3inTdyGizCPMgExBVmQ5fU");
+const Autolinker = require('autolinker');
+
+let amCache = {anime:{}, manga:{}};
 let colorCache = {};
-let mainColors = {};
 Wisp.customColors = {};
 let regdateCache = {};
 Users.vips = [];
+let Advertisements = {};
+let monData;
+try {
+	monData = fs.readFileSync("data/WSSB.txt").toString().split("\n\n");
+} catch (e) {}
 
 Wisp.autoJoinRooms = {};
 try {
@@ -20,12 +27,150 @@ Wisp.tells = {};
 try {
 	Wisp.tells = JSON.parse(fs.readFileSync('config/tells.json', 'utf*'));
 } catch (e) {}
+const mainColors = {
+	'theimmortal': 'taco',
+	'bmelts': 'testmelts',
+	'zarel': 'aeo',
+	'zarell': 'aeo',
+	'greatsage': 'test454',
+	// 'snowflakes': 'snowflake',
+	'jumpluff': 'zacchaeus',
+	'zacchaeus': 'jumpluff',
+	'kraw': 'kraw1',
+	'growlithe': 'steamroll',
+	'snowflakes': 'endedinariot',
+	'doomvendingmachine': 'theimmortal',
+	'mikel': 'mikkel',
+	'arcticblast': 'rsem',
+	'mjb': 'thefourthchaser',
+	'thefourthchaser': 'mjb',
+	'tfc': 'mjb',
+	'mikedecishere': 'mikedec3boobs',
+	'heartsonfire': 'haatsuonfaiyaa',
+	'royalty': 'wonder9',
+	// 'osiris': 'yamraiha',
+	'limi': 'azure2',
+	'haunter': 'cathy',
+	'ginganinja': 'piratesandninjas',
+	'aurora': 'c6n6fek',
+	'jdarden': 'danielcross',
+	'solace': 'amorlan',
+	'dcae': 'galvatron',
+	'queenofrandoms': 'hahaqor',
+	'jelandee': 'thejelandee',
+	'diatom': 'dledledlewhooop',
+	// 'waterbomb': 'wb0',
+	'texascloverleaf': 'aggronsmash',
+	'treecko': 'treecko56',
+	'treecko37': 'treecko56',
+	'violatic': 'violatic92',
+	'exeggutor': 'ironmanatee',
+	'ironmanatee': 'exeggutor',
+	// 'shamethat': 'aaa10',
+	'skylight': 'aerithass',
+	// 'prem': 'premisapieceofshit',
+	'goddessbriyella': 'jolteonxvii', // third color change
+	'nekonay': 'catbot20',
+	'coronis': 'kowonis',
+	'vaxter': 'anvaxter',
+	'mattl': 'mattl34',
+	'shaymin': 'test33',
+	// 'orphic': 'dmt6922',
+	'kayo': 'endedinariot',
+	'tgmd': 'greatmightydoom',
+	'vacate': 'vacatetest',
+	'bean': 'dragonbean',
+	'yunan': 'osiris13',
+	'politoed': 'brosb4hoohs',
+	'scotteh': 'nsyncluvr67',
+	'bumbadadabum': 'styrofoamboots',
+	'yuihirasawa': 'weeabookiller',
+	'monohearted': 'nighthearted',
+	'prem': 'erinanakiri', // second color change
+	'clefairy': 'fuckes',
+	'morfent': 'aaaa',
+	'crobat': 'supergaycrobat4',
+	'beowulf': '298789z7z',
+	'flippy': 'flippo',
+	'raoulsteve247': 'raoulbuildingpc',
+	'thedeceiver': 'colourtest011',
+	'darnell': 'ggggggg',
+	'shamethat': 'qpwkfklkjpskllj', // second color change
+	'aipom': 'wdsddsdadas',
+	'alter': 'spakling',
+	'biggie': 'aoedoedad',
+	'osiris': 'osiris12', // second color change
+	'azumarill': 'azumarill69',
+	'redew': 'redeww',
+	'sapphire': 'masquerains',
+	'calyxium': 'calyxium142',
+	'kiracookie': 'kracookie',
+	'blitzamirin': 'hikaruhitachii',
+	'skitty': 'shckieei',
+	'sweep': 'jgjjfgdfg', // second color change
+	'panpawn': 'crowt',
+	'val': 'pleasegivemecolorr',
+	'valentine': 'pleasegivemecolorr',
+	'briayan': 'haxorusxi',
+	'xzern': 'mintycolors',
+	'shgeldz': 'cactusl00ver',
+	'abra': 'lunchawaits',
+	'maomiraen': 'aaaaaa',
+	'trickster': 'sunako',
+	'articuno': 'bluekitteh177',
+	// 'antemortem': 'abc11092345678',
+	'scene': 'aspire',
+	'barton': 'hollywood15',
+	// 'psych': 'epicwome',
+	'zodiax': 'coldeann',
+	'ninetynine': 'blackkkk',
+	'kasumi': 'scooter4000',
+	'xylen': 'bloodyrevengebr',
+	'aelita': 'y34co3',
+	'fx': 'cm48ubpq',
+	'horyzhnz': 'superguy69',
+	'quarkz': 'quarkz345',
+	'fleurdyleurse': 'calvaryfishes',
+	'trinitrotoluene': '4qpr7pc5mb',
+	'rekeri': 'qgadlu6g',
+	'austin': 'jkjkjkjkjkgdl',
+	'jinofthegale': 'cainvelasquez',
+	'waterbomb': 'naninan',
+	'starbloom': 'taigaaisaka',
+	'macle': 'flogged',
+	'ashiemore': 'poncp',
+	'charles': 'charlescarmichael',
+	'sigilyph': 'ek6',
+	'spy': 'spydreigon',
+	'kinguu': 'dodmen',
+	'dodmen': 'kinguu',
+	'halite': 'cjilkposqknolssss',
+	'magnemite': 'dsfsdffs',
+	'ace': 'sigilyph143',
+	'leftiez': 'xxxxnbbhiojll',
+	'grim': 'grimoiregod',
+	'strength': '0v0tqpnu',
+	'advantage': 'nsyncluvr67',
+	'quote': 'quotecs',
+	'snow': 'q21yzqgh',
+	'omegaxis': 'omegaxis14',
+	'paradise': 'rnxvzwpwtz',
+	'sailorcosmos': 'goldmedalpas',
+	'dontlose': 'dhcli22h',
+	'tatsumaki': 'developmentary',
+	'starry': 'starryblanket',
+	'imas': 'imas234',
+	'vexeniv': 'vexenx',
+	'ayanosredscarf': 'ezichqog',
+	'penquin': 'privatepenquin',
+	'cathy': '', //{color: '#ff5cb6'}
+};
 
 const polltiers = ['Random Battle', 'Anything Goes', 'Ubers', 'OverUsed', 'Underused',
 	'RarelyUsed', 'NeverUsed', 'PU', 'LC', 'Random Doubles Battle', 'VGC 2016',
 	'Battle Spot Doubles', 'Random Triples Battle', 'Challenge Cup 1v1', 'Balanced Hackmons',
 	'1v1, Monotype', 'Inverse Battle', 'Almost Any Ability', 'STABmons', 'Hackmons Cup',
-	'[Seasonal]', 'Battle Factory', 'Doubles OU', 'CAP', 'Gen 5 OU'];
+	'[Seasonal]', 'Battle Factory', 'Doubles OU', 'CAP', 'Gen 5 OU', 'Doubles 1v1', 'Random Monotype'];
 
 const bubbleLetterMap = new Map([
 	['a', '\u24D0'], ['b', '\u24D1'], ['c', '\u24D2'], ['d', '\u24D3'], ['e', '\u24D4'], ['f', '\u24D5'], ['g', '\u24D6'], ['h', '\u24D7'], ['i', '\u24D8'], ['j', '\u24D9'], ['k', '\u24DA'], ['l', '\u24DB'], ['m', '\u24DC'],
@@ -154,6 +299,11 @@ exports.commands = {
 			res.on('data', chunk => {
 				data += chunk;
 			}).on('end', () => {
+				if (data.charAt(0) !== '[') {
+					this.sendReplyBox("Error retrieving definition for <b>" + Tools.escapeHTML(target) + "</b>.");
+					room.update();
+					return;
+				}
 				data = JSON.parse(data);
 				let output = '<font color=#24678d><b>Definitions for ' + target + ':</b></font><br />';
 				if (!data[0]) {
@@ -167,7 +317,7 @@ exports.commands = {
 						count++;
 					}
 					this.sendReplyBox(output);
-					return room.update;
+					return room.update();
 				}
 			});
 		});
@@ -192,6 +342,11 @@ exports.commands = {
 			res.on('data', chunk => {
 				data += chunk;
 			}).on('end', () => {
+				if (data.charAt(0) !== '{') {
+					this.sendReplyBox("Error retrieving definition for <b>" + Tools.escapeHTML(target) + "</b>.");
+					room.update();
+					return;
+				}
 				data = JSON.parse(data);
 				let definitions = data['list'];
 				if (data['result_type'] === 'no_results') {
@@ -249,7 +404,7 @@ exports.commands = {
 		if (!target) return this.sendReply("/rmall [message] - Sends a pm to all users in the room.");
 		target = target.replace(/<(?:.|\n)*?>/gm, '');
 
-		let pmName = '~Room PM (' + Tools.escapeHTML(room.title) + ') [Do not reply]';
+		let pmName = '~Room PM (' + room.title + ') [Do not reply]';
 
 		for (let i in room.users) {
 			let message = '|pm|' + pmName + '|' + room.users[i].getIdentity() + '| ' + target;
@@ -272,6 +427,7 @@ exports.commands = {
 	mimis: 'away',
 	away: function (target, room, user, connection, cmd) {
 		if (!user.isAway && user.name.length > 19) return this.sendReply("Your username is too long for any kind of use of this command.");
+		if (!this.canTalk()) return false;
 
 		target = target ? target.replace(/[^a-zA-Z0-9]/g, '') : 'AWAY';
 		if (cmd !== 'away') target = cmd;
@@ -403,6 +559,8 @@ exports.commands = {
 		this.parse('/poll create Tier for the next tournament?, ' + polltiers.join(', '));
 	},
 
+	clearall: 'clearroom',
+	cleer: 'clearroom',
 	clearroom:  function (target, room, user) {
 		if (!this.can('clearroom', null, room)) return false;
 		if (room.battle) return this.sendReply("You cannot clearall in battle rooms.");
@@ -412,6 +570,7 @@ exports.commands = {
 			room.log[len] = '';
 		}
 		for (let u in room.users) {
+			if (!Users.get(u) || !Users.get(u).connected) continue;
 			users.push(u);
 			Users.get(u).leaveRoom(room, Users.get(u).connections[0]);
 		}
@@ -421,6 +580,7 @@ exports.commands = {
 				Users.get(users[len]).joinRoom(room, Users.get(users[len]).connections[0]);
 			}
 		}, 1000);
+		this.privateModCommand("(" + user.name + " used /clearroom)");
 	},
 
 	roomkick: 'kick',
@@ -434,6 +594,7 @@ exports.commands = {
 		}
 		if (!this.can('mute', targetUser, room)) return false;
 		if (!(targetUser in room.users)) return this.errorReply("User '" + targetUser + "' is not in this room.");
+		if (targetUser.can('seniorstaff') && !this.can('seniorstaff')) return this.errorReply("Upper staff may not be kicked.");
 		this.addModCommand(targetUser.name + ' was kicked from the room by ' + user.name + '.');
 		targetUser.popup('You were kicked from ' + room.id + ' by ' + user.name + '.');
 		targetUser.leaveRoom(room.id);
@@ -441,6 +602,25 @@ exports.commands = {
 	kickhelp: ['/kick [user] - Kicks a user from the room.'],
 	roomkickhelp: ['/kick [user] - Kicks a user from the room.'],
 
+	unlink: 'breaklinks',
+	breaklink: 'breaklinks',
+	linkbreak: 'breaklinks',
+	breaklinks: function (target, room, user) {
+		if (!target || !target.trim()) return this.parse('/help unlink');
+		let targetUser = Users(target);
+		if (!targetUser) return this.errorReply("User '" + target + "' not found.");
+		if (!this.can('warn', targetUser, room)) return false;
+
+		this.add('|unlink|' + targetUser.userid);
+		for (let i in targetUser.prevNames) {
+			this.add('|unlink|' + i);
+		}
+		this.privateModCommand("(" + targetUser.name + "'s links were broken by " + user.name + ")");
+	},
+	unlinkhelp: ["/unlink [user] - Breaks a user's posted links."],
+
+	clearmessages: 'hidetext',
+	clearmsg: 'hidetext',
 	hidetext: function (target, room, user) {
 		if (!target) return this.parse('/help hidetext');
 		this.splitTarget(target);
@@ -453,12 +633,10 @@ exports.commands = {
 			this.errorReply("/hidetext - Access denied.");
 			return false;
 		}
-		if (targetUser.locked || Users.checkBanned(targetUser.latestIp)) {
+		if ((targetUser.locked || Punishments.useridSearch(userid)) && user.can('lock', targetUser)) {
 			hidetype = 'hide|';
-		} else if ((room.bannedUsers[toId(name)] && room.bannedIps[targetUser.latestIp]) || user.can('rangeban')) {
-			hidetype = 'roomhide|';
 		} else {
-			return this.errorReply("User '" + name + "' is not banned from this room or locked.");
+			hidetype = 'roomhide|';
 		}
 		this.addModCommand("" + targetUser.name + "'s messages were cleared from room " + room.id + " by " + user.name + ".");
 		this.add('|unlink|' + hidetype + userid);
@@ -478,14 +656,19 @@ exports.commands = {
 		if (!this.runBroadcast()) return;
 		if (!target) return this.errorReply("No target.");
 		let targetAnime = Tools.escapeHTML(target.trim());
+		let id = targetAnime.toLowerCase().replace(/ /g, '');
+		if (amCache.anime[id]) return this.sendReply('|raw|' + amCache.anime[id]);
+
 		nani.get('anime/search/' + targetAnime)
 		.then(data => {
+			if (data[0].adult) {
+				return this.errorReply('Nsfw content is not allowed.');
+			}
 			nani.get('anime/' + data[0].id)
 				.then(data => {
 					let css = 'text-shadow: 1px 1px 1px #CCC; padding: 3px 8px;';
 					let output = '<div class="infobox"><table width="100%"><tr>';
-					if (data.genres.indexOf('Hentai') >= 0) return this.errorReply('Nsfw content is not allowed.');
-					let description = Tools.escapeHTML(data.description.replace(/(\r\n|\n|\r)/gm, " "));
+					let description = data.description.replace(/(\r\n|\n|\r)/gm, "").split('<br><br>').join('<br>');
 					if (description.indexOf('&lt;br&gt;&lt;br&gt;') >= 0) description = description.substr(0, description.indexOf('&lt;br&gt;&lt;br&gt;'));
 					if (description.indexOf('<br>') >= 0) description = description.substr(0, description.indexOf('<br>'));
 					output += '<td style="' + css + ' background: rgba(170, 165, 215, 0.5); box-shadow: 2px 2px 5px rgba(170, 165, 215, 0.8); border: 1px solid rgba(170, 165, 215, 1); border-radius: 5px; color: #2D2B40; text-align: center; font-size: 15pt;"><b>' + data.title_romaji + '</b></td>';
@@ -497,6 +680,7 @@ exports.commands = {
 					output += '<tr><td style="' + css + '"><b>Rating: </b> ' + data.average_score + '/100</td></tr>';
 					output += '<tr><td colspan="2" style="' + css + '"><b>Description: </b>' + description + '</td></tr>';
 					output += '</table></div>';
+					amCache.anime[id] = output;
 					this.sendReply('|raw|' + output);
 					room.update();
 				});
@@ -510,6 +694,9 @@ exports.commands = {
 		if (!this.runBroadcast()) return;
 		if (!target) return this.errorReply("No target.");
 		let targetAnime = Tools.escapeHTML(target.trim());
+		let id = targetAnime.toLowerCase().replace(/ /g, '');
+		if (amCache.anime[id]) return this.sendReply('|raw|' + amCache.anime[id]);
+
 		nani.get('manga/search/' + targetAnime)
 		.then(data => {
 			nani.get('manga/' + data[0].id)
@@ -519,7 +706,7 @@ exports.commands = {
 					for (let i = 0; i < data.genres.length; i++) {
 						if (/(Hentai|Yaoi|Ecchi)/.test(data.genres[i])) return this.errorReply('Nsfw content is not allowed.');
 					}
-					let description = Tools.escapeHTML(data.description.replace(/(\r\n|\n|\r)/gm, " "));
+					let description = data.description.replace(/(\r\n|\n|\r)/gm, " ").split('<br><br>').join('<br>');
 					if (description.indexOf('&lt;br&gt;&lt;br&gt;') >= 0) description = description.substr(0, description.indexOf('&lt;br&gt;&lt;br&gt;'));
 					if (description.indexOf('<br>') >= 0) description = description.substr(0, description.indexOf('<br>'));
 					output += '<td style="' + css + ' background: rgba(170, 165, 215, 0.5); box-shadow: 2px 2px 5px rgba(170, 165, 215, 0.8); border: 1px solid rgba(170, 165, 215, 1); border-radius: 5px; color: #2D2B40; text-align: center; font-size: 15pt;"><b>' + data.title_romaji + '</b></td>';
@@ -531,6 +718,7 @@ exports.commands = {
 					output += '<tr><td style="' + css + '"><b>Rating: </b> ' + data.average_score + '/100</td></tr>';
 					output += '<tr><td colspan="2" style="' + css + '"><b>Description: </b>' + description + '</td></tr>';
 					output += '</table></div>';
+					amCache.manga[id] = output;
 					this.sendReply('|raw|' + output);
 					room.update();
 				});
@@ -569,6 +757,344 @@ exports.commands = {
 		Rooms.global.writeChatRoomData();
 		this.privateModCommand("(" + user.name + " has " + (status ? "disabled" : "enabled") + " global declares in this room.)");
 	},
+
+	etour: function (target, room, user) {
+		if (!target) return this.parse("/help etour");
+		this.parse("/tour create " + target + ", elimination");
+	},
+	etourhelp: ["/etour [format] - Creates an elimination tournament."],
+
+	endpoll: function (target, room, user) {
+		this.parse("/poll end");
+	},
+
+	votes: function (target, room, user) {
+		if (!room.poll) return this.errorReply("There is no poll running in this room.");
+		if (!this.runBroadcast()) return;
+		this.sendReplyBox("votes: " + room.poll.totalVotes);
+	},
+
+	endtour: function (target, room, user) {
+		this.parse("/tour end");
+	},
+
+	title: function (target, room, user) {
+		if (!target) return this.parse("/help title");
+		let targets = target.split(',');
+		for (let u in targets) targets[u] = targets[u].trim();
+		if (!targets[0]) return this.parse("/help title");
+		let cmd = targets[0];
+		let targetUser, title, hex;
+		if (targets[1]) targetUser = targets[1];
+		if (targets[2]) title = targets[2];
+		if (targets[3]) hex = targets[3];
+
+		switch (toId(cmd)) {
+		case "set":
+			if (!this.can('title')) return false;
+			if (!targets[2]) return this.parse("/help title");
+			if (!Users(targetUser)) return this.errorReply('"' + targetUser + '" is not online.');
+			if (title.length < 1) return this.errorReply("Title must be at least one character long.");
+			if (title.length > 25) return this.errorReply("Titles may not be longer than 25 characters.");
+			if (hex && hex.length > 7) return this.errorReply("The hex may not be longer than 7 characters (including #).");
+			title = '<font color="#' + ((hex && hex.length > 1) ? toId(hex) : 'b30000') + '"><b>' + Tools.escapeHTML(title) + '</b></font>';
+			Wisp.setTitle(targetUser, title);
+			if (Users(targetUser).connected) Users(targetUser).popup("|html|" + Wisp.nameColor(user.name) + " has set your user title to \"" + title + "\".");
+			this.sendReply("|raw|You've set " + Wisp.nameColor(targetUser) + "'s title to \"" + title + "\".");
+			Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has set " + Wisp.nameColor(targetUser, true) + "'s user title to " + title + ".").update();
+			Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has set " + Wisp.nameColor(targetUser, true) + "'s user title to " + title + ".");
+			break;
+		case "delete":
+			if (!this.can('title')) return false;
+			if (!targets[1]) return this.parse("/help title");
+			Wisp.getTitle(targetUser, title => {
+				if (title === "") return this.sendReply(targetUser + " does not have a title.");
+				Wisp.setTitle(targetUser, "", () => {
+					if (Users(targetUser) && Users(targetUser).connected) Users(targetUser).popup("|html|" + Wisp.nameColor(user.name) + " has removed your user title.");
+					this.sendReply("You have removed " + targetUser + "'s user title.");
+					Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has removed " + Wisp.nameColor(targetUser, true) + "'s user title.").update();
+					Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has removed " + Wisp.nameColor(targetUser, true) + "'s user title.");
+				});
+			});
+			break;
+		case "view":
+			if (!targets[1]) return this.parse("/help title");
+			if (!this.runBroadcast()) return;
+			Wisp.getTitle(targetUser, title => {
+				if (title === "") {
+					this.sendReplyBox(Wisp.nameColor(targetUser, true) + " does not have a title.");
+				} else {
+					this.sendReplyBox(Wisp.nameColor(targetUser, true) + "'s user title is \"" + title + "\".");
+				}
+				room.update();
+			});
+			break;
+		}
+	},
+	titlehelp: ["/title set, user, title - Sets a title.",
+				"/title delete, user - Deletes a users title.",
+				"/title view, user - Shows a users title [broadcastable]",
+			],
+
+	advertise: function (target, room, user, connection) {
+		if (room.id !== 'lobby') return this.sendReply("This command only works in the lobby.");
+		if (!target) return this.sendReply("Usage: /advertise [message] - Adds an advertisement to the advertisement queue.");
+		if (target.length > 250) return this.sendReply("Advertisements may not be longer than 250 characters.");
+		if (Users.ShadowBan.checkBanned(user)) return this.sendReply("Your message has been added to the advertisement queue. It will be broadcast in the lobby shortly.");
+		if (!this.canTalk()) return this.sendReply("You're unable to chat in this room.");
+		for (let u in user.ips) {
+			if (Advertisements[u]) {
+				return this.sendReply("You already have an advertisement in the queue. Please wait for it to be broadcast before adding another one.");
+			}
+		}
+
+		if (user.advertisementCooldown) {
+			let milliseconds = (Date.now() - user.advertisementCooldown);
+			let seconds = ((milliseconds / 1000) % 60);
+			let remainingTime = Math.round(seconds - (15 * 60));
+			if (((Date.now() - user.advertisementCooldown) <= 15 * 60 * 1000)) return this.sendReply("You must wait " + (remainingTime - remainingTime * 2) + " seconds before placing another advertisement.");
+		}
+		user.advertisementCooldown = Date.now();
+
+		let message = target;
+		if (Config.chatfilter) message = Config.chatfilter(message, user, room, connection);
+		if (!message) return;
+
+		if (!room.lastAdvertisement) {
+			room.add('|raw|<div class="infobox"><strong><font color=#2DA900>Advertisement: </font></strong> ' + Wisp.parseMessage(message) + ' - ' + Wisp.nameColor(user.name) + '</div>');
+			room.update();
+			room.lastAdvertisement = Date.now();
+			return;
+		}
+
+		if ((Date.now() - room.lastAdvertisement) >= 5 * 60 * 1000) {
+			room.add('|raw|<div class="infobox"><strong><font color=#2DA900>Advertisement: </font></strong> ' + Wisp.parseMessage(message) + ' - ' + Wisp.nameColor(user.name) + '</div>');
+			room.update();
+			room.lastAdvertisement = Date.now();
+			return;
+		}
+
+		queueAdvertisement(message, user.name, user.latestIp);
+		room.lastAdvertisement = Date.now();
+		return this.sendReply("Your message has been added to the advertisement queue. It will be broadcast in the lobby shortly.");
+	},
+
+	crashlogs: function (target, room, user) {
+		if (!this.can('hotpatch') && user.userid !== 'panpawn' && user.userid !== 'silveee') return false;
+		if (target) {
+			target = Number(target);
+			if (isNaN(target)) return this.parse('/help crashlogs');
+			if (target < 1) target = 100; // default to 100 lines
+		}
+		let crashes = fs.readFileSync('logs/errors.txt', 'utf8').split('\n').splice((target ? target * -1 : -100)).join('\n');
+		user.send('|popup|' + crashes);
+	},
+
+	autovoice: 'autorank',
+	autodriver: 'autorank',
+	automod: 'autorank',
+	autoowner: 'autorank',
+	autopromote: 'autorank',
+	autorank: function (target, room, user, connection, cmd) {
+		switch (cmd) {
+		case 'autovoice':
+			target = '+';
+			break;
+		case 'autodriver':
+			target = '%';
+			break;
+		case 'automod':
+			target = '@';
+			break;
+		case 'autoowner':
+			target = '#';
+			break;
+		}
+
+		if (!target) return this.sendReply("Usage: /autorank [rank] - Automatically promotes user to the specified rank when they join the room.");
+		if (!this.can('roommod', null, room)) return false;
+		target = target.trim();
+
+		if (target === 'off' && room.autorank) {
+			delete room.autorank;
+			delete room.chatRoomData.autorank;
+			Rooms.global.writeChatRoomData();
+			for (let u in room.users) Users(u).updateIdentity();
+			return this.privateModCommand("(" + user.name + " has disabled autorank in this room.)");
+		}
+		if (room.autorank && room.autorank === target) return this.sendReply("Autorank is already set to \"" + target + "\".");
+
+		if (Config.groups[target] && !Config.groups[target].globalonly) {
+			if (target === '#' && user.userid !== room.founder) return this.sendReply("You can't set autorank to # unless you're the room founder.");
+			room.autorank = target;
+			room.chatRoomData.autorank = target;
+			Rooms.global.writeChatRoomData();
+			for (let u in room.users) Users(u).updateIdentity();
+			return this.privateModCommand("(" + user.name + " has set autorank to \"" + target + "\" in this room.)");
+		}
+		return this.sendReply("Group \"" + target + "\" not found.");
+	},
+
+	clearroomstaff: 'clearroomauth',
+	clearroomauth: function (target, room, user) {
+		if (!room.founder && user.group !== '~') return this.sendReply('/clearroomauth - Access denied.');
+		if (room.founder !== user.userid && !user.can('seniorstaff')) return this.sendReply('/clearroomauth - Access denied.');
+		if (!room.chatRoomData) return this.sendReply('This room isn\'t registered.');
+		if (!room.auth) return this.sendReply('This room has no auth.');
+		if (room.isOfficial && !user.can('seniorstaff')) return this.sendReply('Only senior staff can clear the room auth in official rooms.');
+		if (target && !Config.groups[target]) return this.errorReply("Please specify a valid rank.");
+
+		if (target && Config.groups[target]) {
+			for (let u in room.auth) {
+				if (room.founder && u === room.founder) continue;
+				if (room.auth[u] === target) delete room.auth[u];
+			}
+			room.chatRoomData.auth = room.auth;
+			Rooms.global.writeChatRoomData();
+			for (let i in room.users) Users(i).updateIdentity();
+			return this.privateModCommand("(" + user.name + " has cleared the room auth list of " + Config.groups[target].name + "s.)");
+		}
+
+		room.auth = {};
+		room.auth[user.userid] = '#';
+		room.founder = user.userid;
+		room.chatRoomData.auth = room.auth;
+		room.chatRoomData.founder = room.founder;
+		Rooms.global.writeChatRoomData();
+		for (let u in room.users) Users(u).updateIdentity();
+		return this.privateModCommand('(' + user.name + ' has cleared the room auth list.)');
+	},
+	clearroomauthhelp: [
+		'/clearroomauth - Clears the room auth list in the current room.',
+		'/clearroomauth [rank] - Clears the room auth list of users with the rank specified.',
+	],
+
+	roomlist: function (target, room, user) {
+		if (!this.can('seniorstaff')) return;
+
+		let header = ['<b><font color="#b30000" size="2">Total users connected: ' + Rooms.global.userCount + '</font></b><br />'];
+		let official = ['<b><font color="#1a5e00" size="2">Official chat rooms:</font></b><br />'];
+		let nonOfficial = ['<hr><b><font color="#000b5e" size="2">Public chat rooms:</font></b><br />'];
+		let privateRoom = ['<hr><b><font color="#ff5cb6" size="2">Private chat rooms:</font></b><br />'];
+		let groupChats = ['<hr><b><font color="#740B53" size="2">Group Chats:</font></b><br />'];
+		let battleRooms = ['<hr><b><font color="#0191C6" size="2">Battle Rooms:</font></b><br />'];
+
+		let rooms = [];
+
+		Rooms.rooms.forEach(curRoom => {
+			rooms.push(curRoom.id);
+		});
+
+		rooms.sort(function (a, b) {
+			return a - b;
+		});
+
+		for (let u in rooms) {
+			let curRoom = Rooms(rooms[u]);
+			if (!curRoom || u === 'global') continue;
+			if (curRoom.type === 'battle') {
+				battleRooms.push('<a href="/' + curRoom.id + '" class="ilink">' + Tools.escapeHTML(curRoom.title) + '</a> (' + curRoom.userCount + ')');
+			}
+			if (curRoom.type === 'chat') {
+				if (curRoom.isPersonal) {
+					groupChats.push('<a href="/' + curRoom.id + '" class="ilink">' + curRoom.id + '</a> (' + curRoom.userCount + ')');
+					continue;
+				}
+				if (curRoom.isOfficial) {
+					official.push('<a href="/' + toId(curRoom.title) + '" class="ilink">' + Tools.escapeHTML(curRoom.title) + '</a> (' + curRoom.userCount + ')');
+					continue;
+				}
+				if (curRoom.isPrivate) {
+					privateRoom.push('<a href="/' + toId(curRoom.title) + '" class="ilink">' + Tools.escapeHTML(curRoom.title) + '</a> (' + curRoom.userCount + ')');
+					continue;
+				}
+			}
+			if (curRoom.type !== 'battle') nonOfficial.push('<a href="/' + toId(curRoom.title) + '" class="ilink">' + curRoom.title + '</a> (' + curRoom.userCount + ')');
+		}
+		this.sendReplyBox(header + official.join(' ') + nonOfficial.join(' ') + privateRoom.join(' ') + (groupChats.length > 1 ? groupChats.join(' ') : '') + (battleRooms.length > 1 ? battleRooms.join(' ') : ''));
+	},
+
+	ssb: 'wssb',
+	wssb: function (target, room, user) {
+		if (!this.runBroadcast()) return false;
+		if (!target || target === 'help') return this.parse('/help wssb');
+		let targetData = getMonData(toId(target));
+		if (!targetData) return this.errorReply("The staffmon '" + toId(target) + "' could not be found.");
+		return this.sendReplyBox(targetData);
+	},
+	wssbhelp: ["/Wssb [staff member's name] - displays data for a staffmon's movepool, custom move, and custom ability."],
+
+	roombanlist: function (target, room, user) {
+		if (!this.can('roomban', null, room)) return false;
+		if (!this.runBroadcast()) return;
+		if (Object.keys(room.bannedUsers).length < 1) return this.sendReplyBox("This room has no banned users.");
+		let users = [];
+		for (let u in room.bannedUsers) users.push(Wisp.nameColor(u, true));
+		this.sendReplyBox("Roombanned users in " + Tools.escapeHTML(room.title) + ":<br />" + users.join(', '));
+	},
+
+	staffdeclare: function (target, room, user) {
+		if (!this.can('declare', null, room)) return false;
+		if (!target) return this.parse('/help staffdeclare');
+		if (!this.canTalk()) return;
+		if (room.type !== 'chat') return this.errorReply("You can't use staff declares in this room.");
+
+		let id = user.userid + "-" + Wisp.randomString(5);
+		room.declareIds.push(id);
+
+		for (let u in room.users) {
+			let curUser = Users(u);
+			if (!curUser || !curUser.connected || !curUser.can('receiveauthmessages', null, room)) continue;
+			curUser.sendTo(room, '|uhtml|' + id + '|<div class="broadcast-red"><u><b>Staff Declare by ' + Tools.escapeHTML(user.name) + ':</b></u><br />' + target + '</div>');
+		}
+		this.logModCommand(user.name + " staff declared: " + target + " (id: " + id + ")");
+	},
+	staffdeclarehelp: ['/staffdeclare - Declares a message only visible to Staff.'],
+
+	background: {
+		set: function (target, room, user) {
+			if (!this.can('background')) return false;
+			if (!target) return this.parse('/help background');
+			let targets = target.split(',');
+			for (let u in targets) targets[u] = targets[u].trim();
+			if (!targets[1]) return this.parse('/help background');
+
+			let targetUser = Users(targets[0]);
+			let image = targets[1];
+
+			if (!targetUser || !targetUser.connected) return this.errorReply(target[0] + " is not online");
+			if (!image) return this.errorReply("Please specify an image to set.");
+			if (image.length > 100) return this.errorReply("Image URLs may not be longer than 100 characters.");
+
+			Wisp.setBackground(targetUser.userid, image);
+			Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has set " + Wisp.nameColor(targetUser.name, true) + "'s profile background to: " + Tools.escapeHTML(image));
+			Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has set " + Wisp.nameColor(targetUser.name, true) + "'s profile background to: " + Tools.escapeHTML(image));
+
+			this.sendReply("You've set " + targetUser.name + "'s profile background.");
+		},
+
+		delete: function (target, room, user) {
+			if (!this.can('background')) return false;
+			if (!target) return this.parse('/help background');
+
+			let targetUser = Users(target);
+
+			if (!targetUser || !targetUser.connected) return this.errorReply(target[0] + " is not online");
+
+			Wisp.setBackground(targetUser.userid, "");
+			Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has removed " + Wisp.nameColor(targetUser.name, true) + "'s profile background");
+			Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has removed " + Wisp.nameColor(targetUser.name, true) + "'s profile background");
+
+			this.sendReply("You've removed " + targetUser.name + "'s profile background.");
+		},
+		'': function (target, room, user) {
+			return this.parse('/help background');
+		},
+	},
+	backgroundhelp: [
+		"/background set [user], [image] - Sets a users profile background.",
+		"/background delete [user] - Deletes a users profile background.",
+	],
 };
 
 Object.assign(Wisp, {
@@ -686,7 +1212,7 @@ Object.assign(Wisp, {
 
 	nameColor: function (name, bold) {
 		return (bold ? "<b>" : "") + "<font color=" + this.hashColor(name) + ">" +
-		(Users(name) && Users(name).connected && Users.getExact(name) ? Tools.escapeHTML(Users.getExact(name).name) : Tools.escapeHTML(name)) +
+		(Users(name) && Users.getExact(name) ? Tools.escapeHTML(Users.getExact(name).name) : Tools.escapeHTML(name)) +
 		"</font>" + (bold ? "</b>" : "");
 	},
 
@@ -704,6 +1230,7 @@ Object.assign(Wisp, {
 			res.on('data', function (chunk) {
 				data += chunk;
 			}).on('end', function () {
+				if (data.charAt(0) !== '{') data = JSON.stringify({registertime: 0});
 				data = JSON.parse(data);
 				let date = data['registertime'];
 				if (date !== 0 && date.toString().length < 13) {
@@ -720,26 +1247,39 @@ Object.assign(Wisp, {
 		});
 	},
 
-	updateSeen: function (userid) {
-		userid = toId(userid);
+	getBackground: function (user, callback) {
+		let userid = toId(user);
+		Wisp.database.all("SELECT background FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
+			if (err) return console.log("getBackground: " + err);
+			callback((rows[0] ? rows[0].background : false));
+		});
+	},
+
+	setBackground: function (user, image) {
+		let userid = toId(user);
+		Wisp.database.run("UPDATE users SET background=$background WHERE userid=$userid;", {$background: image, $userid: userid}, function (err) {
+			if (err) return console('setBackground 1: ' + err);
+			Wisp.database.run("INSERT OR IGNORE INTO users (userid,background) VALUES ($userid, $background)", {$userid: userid, $background: image}, function (err) {
+				if (err) return console.log("setBackground 2: " + err);
+			});
+		});
+	},
+
+	updateSeen: function (user) {
+		let userid = toId(user);
 		if (userid.match(/^guest[0-9]/)) return false;
 		let date = Date.now();
-		Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
-			if (rows.length < 1) {
-				Wisp.database.run("INSERT INTO users(userid, lastSeen) VALUES ($userid, $date)", {$userid: userid, $date: date}, function (err) {
-					if (err) return console.log(err);
-				});
-			} else {
-				Wisp.database.run("UPDATE users SET lastSeen=$date WHERE userid=$userid", {$date: date, $userid: userid}, function (err) {
-					if (err) return console.log(err);
-				});
-			}
+		Wisp.database.run("UPDATE users SET lastSeen=$date, name=$name WHERE userid=$userid;", {$date: date, $name: user, $userid: userid}, function (err) {
+			if (err) return console('updateSeen 1: ' + err);
+			Wisp.database.run("INSERT OR IGNORE INTO users (userid, name, lastSeen) VALUES ($userid, $name, $date)", {$userid: userid, $name: user, $date: date}, function (err) {
+				if (err) return console.log("updateSeen 2: " + err);
+			});
 		});
 	},
 
 	lastSeen: function (userid, callback) {
 		Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
-			if (err) return console.log(err);
+			if (err) return console.log("lastSeen: " + err);
 			callback((rows[0] ? rows[0].lastSeen : false));
 		});
 	},
@@ -755,7 +1295,7 @@ Object.assign(Wisp, {
 	},
 
 	messageSeniorStaff: function (message) {
-		for (let u in Rooms.rooms['global'].users) {
+		for (let u in Rooms.global.users) {
 			let curUser = Users(u);
 			if (!curUser || !curUser.connected || !curUser.can('seniorstaff')) continue;
 			curUser.send('|pm|~Server|~|' + message);
@@ -770,12 +1310,78 @@ Object.assign(Wisp, {
 		let tell = Wisp.tells[user.userid];
 		if (!tell) return;
 		for (let i in tell) {
-			tell[i].forEach(msg => user.send('|pm| Tells|' + user.getIdentity() + '|/html ' + msg));
+			tell[i].forEach(msg => user.send('|pm| Tells|' + user.getIdentity() + '|/raw ' + msg));
 		}
 		delete Wisp.tells[user.userid];
 		fs.writeFileSync('config/tells.json', JSON.stringify(Wisp.tells));
 	},
+
+	getTitle: function (userid, callback) {
+		if (!callback) return false;
+		userid = toId(userid);
+		Wisp.database.all("SELECT title FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
+			if (err) return console.log("getTitle: " + err);
+			callback(((rows[0] && rows[0].title) ? rows[0].title : ""));
+		});
+	},
+
+	setTitle: function (userid, title, callback) {
+		userid = toId(userid);
+		Wisp.database.all("SELECT * FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
+			if (rows.length < 1) {
+				Wisp.database.run("INSERT INTO users(userid, title) VALUES ($userid, $title)", {$userid: userid, $title: title}, function (err) {
+					if (err) return console.log("setTitle 1: " + err);
+					if (callback) return callback();
+				});
+			} else {
+				Wisp.database.run("UPDATE users SET title=$title WHERE userid=$userid", {$title: title, $userid: userid}, function (err) {
+					if (err) return console.log("setTitle 2: " + err);
+					if (callback) return callback();
+				});
+			}
+		});
+	},
+
+	parseMessage: function (message) {
+		if (message.substr(0, 5) === "/html") {
+			message = message.substr(5);
+			message = message.replace(/\_\_([^< ](?:[^<]*?[^< ])?)\_\_(?![^<]*?<\/a)/g, '<i>$1</i>'); // italics
+			message = message.replace(/\*\*([^< ](?:[^<]*?[^< ])?)\*\*/g, '<b>$1</b>'); // bold
+			message = message.replace(/\~\~([^< ](?:[^<]*?[^< ])?)\~\~/g, '<strike>$1</strike>'); // strikethrough
+			message = message.replace(/&lt;&lt;([a-z0-9-]+)&gt;&gt;/g, '&laquo;<a href="/$1" target="_blank">$1</a>&raquo;'); // <<roomid>>
+			message = Autolinker.link(message.replace(/&#x2f;/g, '/'), {stripPrefix: false, phone: false, twitter: false});
+			return message;
+		}
+		message = Tools.escapeHTML(message).replace(/&#x2f;/g, '/');
+		message = message.replace(/\_\_([^< ](?:[^<]*?[^< ])?)\_\_(?![^<]*?<\/a)/g, '<i>$1</i>'); // italics
+		message = message.replace(/\*\*([^< ](?:[^<]*?[^< ])?)\*\*/g, '<b>$1</b>'); // bold
+		message = message.replace(/\~\~([^< ](?:[^<]*?[^< ])?)\~\~/g, '<strike>$1</strike>'); // strikethrough
+		message = message.replace(/&lt;&lt;([a-z0-9-]+)&gt;&gt;/g, '&laquo;<a href="/$1" target="_blank">$1</a>&raquo;'); // <<roomid>>
+		message = Autolinker.link(message, {stripPrefix: false, phone: false, twitter: false});
+		return message;
+	},
+
+	randomString: function (length) {
+		return Math.round((Math.pow(36, length + 1) - Math.random() * Math.pow(36, length))).toString(36).slice(1);
+	},
 });
+
+function queueAdvertisement(message, user, ip) {
+	Advertisements[ip] = {message: message, user: user};
+}
+if (!Config.advertisementTimer) {
+	Config.advertisementTimer = setInterval(function () {
+		if (!Object.keys(Advertisements)[0]) return;
+		let ip = Object.keys(Advertisements)[0];
+		let message = Advertisements[ip].message;
+		let user = Advertisements[ip].user;
+		Rooms('lobby').add('|raw|<div class="infobox"><strong><font color="#2DA900">Advertisement: </font></strong> ' + Wisp.parseMessage(message) + ' - ' + Wisp.nameColor(user) + '</div>');
+		Rooms('lobby').update();
+		delete Advertisements[ip];
+	}, 5 * 60 * 1000);
+	Config.advertisementsLoaded = true;
+}
+
 
 function loadRegdateCache() {
 	try {
@@ -786,4 +1392,16 @@ loadRegdateCache();
 
 function saveRegdateCache() {
 	fs.writeFileSync('config/regdate.json', JSON.stringify(regdateCache));
+}
+
+function getMonData(target) {
+	let returnData = null;
+	monData.forEach(function (data) {
+		if (toId(data.split("\n")[0].split(" - ")[0] || " ") === target) {
+			returnData = data.split("\n").map(function (line) {
+				return Tools.escapeHTML(line);
+			}).join("<br />");
+		}
+	});
+	return returnData;
 }

@@ -18,17 +18,18 @@ class Validator {
 		this.tools = Tools.mod(this.format);
 	}
 
-	validateTeam(team) {
+	validateTeam(team, removeNicknames) {
 		let format = Tools.getFormat(this.format);
-		if (format.validateTeam) return format.validateTeam.call(this, team);
-		return this.baseValidateTeam(team);
+		if (format.validateTeam) return format.validateTeam.call(this, team, removeNicknames);
+		return this.baseValidateTeam(team, removeNicknames);
 	}
 
-	prepTeam(team) {
-		return PM.send(this.format.id, team);
+	prepTeam(team, removeNicknames) {
+		removeNicknames = removeNicknames ? '1' : '0';
+		return PM.send(this.format.id, removeNicknames, team);
 	}
 
-	baseValidateTeam(team) {
+	baseValidateTeam(team, removeNicknames) {
 		let format = this.format;
 		let tools = this.tools;
 
@@ -60,6 +61,7 @@ class Validator {
 			if (setProblems) {
 				problems = problems.concat(setProblems);
 			}
+			if (removeNicknames) team[i].name = team[i].baseSpecies;
 		}
 
 		for (let i = 0; i < format.teamBanTable.length; i++) {
@@ -405,10 +407,6 @@ class Validator {
 								problems.push(name + " must have at least three perfect IVs because it's a legendary and it has a move only available from a gen 6 event.");
 							}
 						}
-						if (eventData.generation < 5) eventData.isHidden = false;
-						if (eventData.isHidden !== undefined && eventData.isHidden !== isHidden) {
-							problems.push(name + (isHidden ? " can't have" : " must have") + " its hidden ability because it has a move only available from a specific " + eventTemplate.species + " event.");
-						}
 						if (tools.gen <= 5 && eventData.abilities && eventData.abilities.length === 1 && !eventData.isHidden) {
 							if (template.species === eventTemplate.species) {
 								// has not evolved, abilities must match
@@ -549,9 +547,9 @@ class Validator {
 		let alreadyChecked = {};
 		let level = set.level || 100;
 
+		let incompatibleAbility = false;
 		let isHidden = false;
 		if (set.ability && tools.getAbility(set.ability).name === template.abilities['H']) isHidden = true;
-		let incompatibleHidden = false;
 
 		let limit1 = true;
 		let sketch = false;
@@ -629,7 +627,7 @@ class Validator {
 
 					if (learnedGen !== '6' && isHidden && !tools.mod('gen' + learnedGen).getTemplate(template.species).abilities['H']) {
 						// check if the Pokemon's hidden ability was available
-						incompatibleHidden = true;
+						incompatibleAbility = true;
 						continue;
 					}
 					if (!template.isNonstandard) {
@@ -728,6 +726,14 @@ class Validator {
 							// can tradeback
 							sources.push('1ST' + learned.slice(2) + ' ' + template.id);
 						}
+						if (set.ability && tools.gen >= 3) {
+							// The event ability must match the Pokémon's
+							let hiddenAbility = template.eventPokemon[learned.substr(2)].isHidden || false;
+							if (hiddenAbility !== isHidden) {
+								incompatibleAbility = true;
+								continue;
+							}
+						}
 						sources.push(learned + ' ' + template.id);
 					} else if (learned.charAt(1) === 'D') {
 						// DW moves:
@@ -788,7 +794,7 @@ class Validator {
 		// Now that we have our list of possible sources, intersect it with the current list
 		if (!sourcesBefore && !sources.length) {
 			if (noPastGen && sometimesPossible) return {type:'pokebank'};
-			if (incompatibleHidden) return {type:'incompatible'};
+			if (incompatibleAbility) return {type:'incompatible'};
 			return true;
 		}
 		if (!sources.length) sources = null;
@@ -875,22 +881,26 @@ PM = TeamValidator.PM = new ProcessManager({
 	},
 	onMessageDownstream: function (message) {
 		// protocol:
-		// "[id]|[format]|[team]"
+		// "[id]|[format]|[removeNicknames]|[team]"
 		let pipeIndex = message.indexOf('|');
-		let pipeIndex2 = message.indexOf('|', pipeIndex + 1);
+		let nextPipeIndex = message.indexOf('|', pipeIndex + 1);
 		let id = message.substr(0, pipeIndex);
+		let format = message.substr(pipeIndex + 1, nextPipeIndex - pipeIndex - 1);
 
-		let format = message.substr(pipeIndex + 1, pipeIndex2 - pipeIndex - 1);
-		let team = message.substr(pipeIndex2 + 1);
+		pipeIndex = nextPipeIndex;
+		nextPipeIndex = message.indexOf('|', pipeIndex + 1);
+		let removeNicknames = message.substr(pipeIndex + 1, nextPipeIndex - pipeIndex - 1);
+		let team = message.substr(nextPipeIndex + 1);
 
-		process.send(id + '|' + this.receive(format, team));
+		process.send(id + '|' + this.receive(format, removeNicknames, team));
 	},
-	receive: function (format, team) {
+	receive: function (format, removeNicknames, team) {
 		let parsedTeam = Tools.fastUnpackTeam(team);
+		removeNicknames = removeNicknames === '1';
 
 		let problems;
 		try {
-			problems = TeamValidator(format).validateTeam(parsedTeam);
+			problems = TeamValidator(format).validateTeam(parsedTeam, removeNicknames);
 		} catch (err) {
 			require('./crashlogger.js')(err, 'A team validation', {
 				format: format,

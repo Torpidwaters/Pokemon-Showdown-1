@@ -9,6 +9,7 @@ let TournamentGenerators = Object.create(null);
 let generatorFiles = {
 	'roundrobin': 'generator-round-robin.js',
 	'elimination': 'generator-elimination.js',
+	'buyin': 'generator-elimination.js',
 };
 for (let type in generatorFiles) {
 	TournamentGenerators[type] = require('./' + generatorFiles[type]);
@@ -62,6 +63,10 @@ class Tournament {
 		this.autoStartTimer = null;
 
 		this.isEnded = false;
+
+		if (room.tournamentBuyin) {
+			this.generator.name = (room.tournamentBuyin + ' Buck Buy in');
+		}
 
 		room.add('|tournament|create|' + this.format + '|' + generator.name + '|' + this.playerCap);
 		room.send('|tournament|update|' + JSON.stringify({
@@ -216,6 +221,15 @@ class Tournament {
 			return;
 		}
 
+		let gameCount = 0;
+		for (let i in user.games) { // eslint-disable-line no-unused-vars
+			gameCount++;
+		}
+		if (gameCount > 4 || Monitor.countPrepBattle(user.latestIp, user.name)) {
+			output.errorReply("Due to high load, you are unable to join this tournament.");
+			return;
+		}
+
 		if (!isAllowAlts) {
 			let users = this.generator.getUsers();
 			for (let i = 0; i < users.length; i++) {
@@ -260,6 +274,12 @@ class Tournament {
 			output.sendReply('|tournament|error|' + error);
 			return;
 		}
+
+		if (toId(this.generator.name).substr(5) === 'buyin') {
+			this.room.tournamentPool -= this.room.tournamentBuyin;
+			Economy.writeMoney(user.userid, this.room.tournamentBuyin);
+		}
+
 		this.players[user.userid].destroy();
 		delete this.players[user.userid];
 		this.playerCount--;
@@ -432,25 +452,34 @@ class Tournament {
 	}
 
 	disqualifyUser(userid, output, reason) {
+		let user = Users.get(userid);
+		let sendReply;
+		if (output) {
+			sendReply = msg => output.sendReply(msg);
+		} else if (user) {
+			sendReply = msg => user.sendTo(this.id, msg);
+		} else {
+			sendReply = () => {};
+		}
 		if (!this.isTournamentStarted) {
-			output.sendReply('|tournament|error|NotStarted');
+			sendReply('|tournament|error|NotStarted');
 			return false;
 		}
 
 		if (!(userid in this.players)) {
-			output.sendReply('|tournament|error|UserNotAdded');
+			sendReply('|tournament|error|UserNotAdded');
 			return false;
 		}
 
 		let player = this.players[userid];
 		if (this.disqualifiedUsers.get(player)) {
-			output.sendReply('|tournament|error|AlreadyDisqualified');
+			sendReply('|tournament|error|AlreadyDisqualified');
 			return false;
 		}
 
 		let error = this.generator.disqualifyUser(player);
 		if (error) {
-			output.sendReply('|tournament|error|' + error);
+			sendReply('|tournament|error|' + error);
 			return false;
 		}
 
@@ -492,7 +521,6 @@ class Tournament {
 		}
 
 		this.room.add('|tournament|disqualify|' + player.name);
-		let user = Users.get(userid);
 		if (user) {
 			user.sendTo(this.room, '|tournament|update|{"isJoined":false}');
 			if (reason !== null) user.popup("|modal|You have been disqualified from the tournament in " + this.room.title + (reason ? ":\n\n" + reason : "."));
@@ -709,6 +737,9 @@ class Tournament {
 		this.runAutoDisqualify(this.room);
 		this.update();
 	}
+	forfeit(user) {
+		this.disqualifyUser(user.userid, null, "You left the tournament");
+	}
 	onConnect(user, connection) {
 		this.updateFor(user, connection);
 	}
@@ -743,6 +774,7 @@ class Tournament {
 		let from = this.players[room.p1.userid];
 		let to = this.players[room.p2.userid];
 		let winner = this.players[winnerid];
+		let score = room.battle.score || [0, 0];
 
 		let result = 'draw';
 		if (from === winner) {
@@ -750,9 +782,11 @@ class Tournament {
 		} else if (to === winner) {
 			result = 'loss';
 		}
+		let tourSize = this.generator.users.size;
+		if (this.room.isOfficial && tourSize >= 4 && room.battle.endType !== 'forced') Wisp.updateTourLadder(from, to, result, room);
 
 		if (result === 'draw' && !this.generator.isDrawingSupported) {
-			this.room.add('|tournament|battleend|' + from.name + '|' + to.name + '|' + result + '|' + room.battle.score.join(',') + '|fail');
+			this.room.add('|tournament|battleend|' + from.name + '|' + to.name + '|' + result + '|' + score.join(',') + '|fail|' + room.id);
 
 			this.generator.setUserBusy(from, false);
 			this.generator.setUserBusy(to, false);
@@ -766,13 +800,13 @@ class Tournament {
 			return this.room.update();
 		}
 
-		let error = this.generator.setMatchResult([from, to], result, room.battle.score);
+		let error = this.generator.setMatchResult([from, to], result, score);
 		if (error) {
 			// Should never happen
-			return this.room.add("Unexpected " + error + " from setMatchResult([" + room.p1.userid + ", " + room.p2.userid + "], " + result + ", " + room.battle.score + ") in onBattleWin(" + room.id + ", " + winnerid + "). Please report this to an admin.").update();
+			return this.room.add("Unexpected " + error + " from setMatchResult([" + room.p1.userid + ", " + room.p2.userid + "], " + result + ", " + score + ") in onBattleWin(" + room.id + ", " + winnerid + "). Please report this to an admin.").update();
 		}
 
-		this.room.add('|tournament|battleend|' + from.name + '|' + to.name + '|' + result + '|' + room.battle.score.join(','));
+		this.room.add('|tournament|battleend|' + from.name + '|' + to.name + '|' + result + '|' + score.join(',') + '|success|' + room.id);
 
 		this.generator.setUserBusy(from, false);
 		this.generator.setUserBusy(to, false);
@@ -810,6 +844,15 @@ class Tournament {
 		}
 
 		let tourSize = this.generator.users.size;
+
+		if (this.room.id === 'monotype') {
+			try {
+				Wisp.givePoints(winner, tourSize, this.room);
+			} catch (e) {
+				console.log('Error giving monoladder points: ' + e);
+			}
+		}
+
 		try { // this code is a bigger mess than I remember... I should clean it up some day.
 			let runnerUp = false;
 
@@ -820,10 +863,7 @@ class Tournament {
 					if (data2['bracketData']['rootNode']['children'][1]['team'] !== winner) runnerUp = data2['bracketData']['rootNode']['children'][1]['team'];
 				}
 			}
-			if (this.prizeMoney !== 0) {
-				this.room.add('|raw|<b>' + Wisp.nameColor(winner, false) + ' has won the bucks tournament for <font color=#24678d>' + this.prizeMoney + '</font> bucks!');
-				Economy.writeMoney(toId(winner), Number(this.prizeMoney));
-			}
+
 			let firstMoney = false;
 			let secondMoney = false;
 			let firstBuck;
@@ -836,19 +876,25 @@ class Tournament {
 				secondBuck = 'buck';
 			}
 
-			/*if (toId(this.generator.name).substr(5) === 'buyin') {
+			if (this.prizeMoney) {
+				firstMoney = this.prizeMoney[0];
+				if (this.prizeMoney[1]) secondMoney = this.prizeMoney[1];
+			}
+
+			if (toId(this.generator.name).substr(5) === 'buyin') {
 				this.room.tournamentPool -= Math.round(this.room.tournamentPool * 0.10);
-				firstMoney = Math.round(this.room.tournamentPool / 1.5);
-				secondMoney = Math.floor(this.room.tournamentPool - firstMoney);
+				firstMoney = Math.round(this.room.tournamentPool);
+				secondMoney = Math.floor(this.room.tournamentPool / 3);
+				firstMoney -= secondMoney;
 				firstBuck = 'buck';
 				secondBuck = 'buck';
-			}*/
+			}
 
 			if (firstMoney) {
 				if (firstMoney > 1) firstBuck = 'bucks';
 				if (secondMoney > 1) secondBuck = 'bucks';
 				this.room.add('|raw|<b><font color="' + Wisp.hashColor(winner) + '">' + Tools.escapeHTML(winner) + '</font> has also won <font color=#b30000>' + firstMoney + '</font> ' + firstBuck + ' for winning the tournament!</b>');
-				if (runnerUp) this.room.add('|raw|<b><font color="' + Wisp.hashColor(runnerUp) + '">' + Tools.escapeHTML(runnerUp) + '</font> has also won <font color=#b30000>' + secondMoney + '</font> ' + secondBuck + ' for coming in second!</b>');
+				if (runnerUp && secondMoney) this.room.add('|raw|<b><font color="' + Wisp.hashColor(runnerUp) + '">' + Tools.escapeHTML(runnerUp) + '</font> has also won <font color=#b30000>' + secondMoney + '</font> ' + secondBuck + ' for coming in second!</b>');
 				Economy.writeMoney(toId(winner), firstMoney, () => {
 					Economy.readMoney(toId(winner), newMoney => {
 						Economy.logTransaction(winner + ' has won ' + firstMoney + ' ' + firstBuck + ' from a tournament in ' + this.room.title + '. They now have ' + newMoney);
@@ -867,9 +913,10 @@ class Tournament {
 		}
 
 		if (this.room.isOfficial && tourSize >= 4) {
+			Wisp.addTourWin(winner);
 			try {
 				let tourRarity = Wisp.tourCard(tourSize, toId(winner));
-				this.room.addRaw("<b><font color='#088cc7'>" + Tools.escapeHTML(winner) + "</font> has also won a <font color=" + tourRarity[0] + ">" + tourRarity[1] + "</font> card: <button class='tourcard-btn' style='border-radius: 20px; box-shadow: 1px 1px rgba(255, 255, 255, 0.3) inset, -1px -1px rgba(0, 0, 0, 0.2) inset, 2px 2px 2px rgba(0, 0, 0, 0.5);' name='send' value='/card " + tourRarity[2] + "'>" + tourRarity[3] + "</button> from the tournament.");
+				this.room.addRaw("<b><font color='" + Wisp.hashColor(winner) + "'>" + Tools.escapeHTML(winner) + "</font> has also won a <font color=" + tourRarity[0] + ">" + tourRarity[1] + "</font> card: <button class='tourcard-btn' style='border-radius: 20px; box-shadow: 1px 1px rgba(255, 255, 255, 0.3) inset, -1px -1px rgba(0, 0, 0, 0.2) inset, 2px 2px 2px rgba(0, 0, 0, 0.5);' name='send' value='/card " + tourRarity[2] + "'>" + tourRarity[3] + "</button> from the tournament.");
 			} catch (e) {
 				console.log('Error giving cards for tournaments: ' + e.stack);
 			}
@@ -895,7 +942,7 @@ function createTournamentGenerator(generator, args, output) {
 	args.unshift(null);
 	return new (Generator.bind.apply(Generator, args))();
 }
-function createTournament(room, format, generator, playerCap, isRated, args, output) {
+function createTournament(room, format, generator, playerCap, isRated, args, output, buyin) {
 	if (room.type !== 'chat') {
 		output.errorReply("Tournaments can only be created in chat rooms.");
 		return;
@@ -923,8 +970,13 @@ function createTournament(room, format, generator, playerCap, isRated, args, out
 		output.errorReply("You cannot have a player cap that is less than 2.");
 		return;
 	}
-	let response = (room.game = exports.tournaments[room.id] = new Tournament(room, format, createTournamentGenerator(generator, args, output), playerCap, isRated));
-	return response;
+	if (toId(generator) === 'buyin') {
+		if (!buyin) buyin = 1;
+		room.tournamentBuyin = parseInt(buyin);
+		room.tournamentPool = 0;
+	}
+	room.game = exports.tournaments[room.id] = new Tournament(room, format, createTournamentGenerator(generator, args, output), playerCap, isRated);
+	return room.game;
 }
 function deleteTournament(id, output) {
 	let tournament = exports.tournaments[id];
@@ -932,6 +984,13 @@ function deleteTournament(id, output) {
 		output.errorReply(id + " doesn't exist.");
 		return false;
 	}
+	if (toId(tournament.generator.name).substr(5) === 'buyin') {
+		let amount = tournament.room.tournamentBuyin;
+		let users = usersToNames(tournament.generator.getUsers().sort());
+		Economy.writeMoneyArr(users, amount);
+	}
+	delete tournament.room.tournamentBuyin;
+	delete tournament.room.tournamentPool;
 	tournament.forceEnd(output);
 	delete exports.tournaments[id];
 	let room = Rooms(id);
@@ -949,13 +1008,28 @@ let commands = {
 		j: 'join',
 		in: 'join',
 		join: function (tournament, user) {
+			if (toId(tournament.generator.name).substr(toId(tournament.generator.name).length - 5, toId(tournament.generator.name).length) === 'buyin') {
+				Economy.readMoney(user.userid, amount => {
+					if (amount < tournament.room.tournamentBuyin) return this.sendReply("You need " + (tournament.room.tournamentBuyin - amount) + " more bucks to join this tournament.");
+					Economy.writeMoney(user.userid, tournament.room.tournamentBuyin * -1, () => {
+						tournament.addUser(user, false, this);
+						tournament.room.tournamentPool += tournament.room.tournamentBuyin;
+						this.sendReply('You have joined the tournament.');
+					});
+				});
+				return;
+			}
 			tournament.addUser(user, false, this);
 		},
 		l: 'leave',
 		out: 'leave',
 		leave: function (tournament, user) {
 			if (tournament.isTournamentStarted) {
-				tournament.disqualifyUser(user.userid, this);
+				if (tournament.generator.getUsers(true).some(player => player.userid === user.userid)) {
+					tournament.disqualifyUser(user.userid, this);
+				} else {
+					this.errorReply("You have already been eliminated from this tournament.");
+				}
 			} else {
 				tournament.removeUser(user, this);
 			}
@@ -998,7 +1072,9 @@ let commands = {
 				} else if (tournament.playerCap && !playerCap) {
 					tournament.playerCap = 0;
 				}
-				this.sendReply("Tournament set to " + generator.name + (tournament.playerCap ? " with a player cap of " + tournament.playerCap : "") + ".");
+				const capNote = (tournament.playerCap ? " with a player cap of " + tournament.playerCap : "");
+				this.privateModCommand("(" + user.name + " set tournament type to " + generator.name + capNote + ".)");
+				this.sendReply("Tournament set to " + generator.name + capNote + ".");
 			}
 		},
 		end: 'delete',
@@ -1152,14 +1228,22 @@ let commands = {
 				return this.sendReply("Usage: " + cmd + " <allow|disallow>");
 			}
 		},
+		prize: 'prizemoney',
 		setprize: 'prizemoney',
 		prizemoney: function (tournament, user, params, cmd) {
-			if (!this.can('pban')) return false;
-			if (!params[0]) return this.sendReply("Usage: " + cmd + " [bucks prize]");
-			let prize = params[0];
-			if (isNaN(prize) || ~prize.indexOf('.') || prize < 1 || prize > 500) return this.errorReply("This amount is not a valid integer that between 1 and 500.");
-			tournament.prizeMoney = prize;
-			this.privateModCommand("(" + user.name + " has set the prize for this tournament to be " + prize + " bucks.)");
+			if (!this.can('bucks')) return false;
+			if (!params[0]) return this.sendReply("Usage: " + cmd + " [bucks prize], [optional second place prize]");
+			params[0] = params[0];
+			if (isNaN(Number(params[0])) || ~params[0].indexOf('.') || params[0] < 1 || params[0] > 500) return this.errorReply("'" + params[0] + "' is not a valid integer that is between 1 and 500.");
+			tournament.prizeMoney = [];
+			tournament.prizeMoney.push(Number(params[0]));
+			if (params[1]) {
+				params[1] = params[1];
+				if (isNaN(Number(params[1])) || ~params[1].indexOf('.') || params[1] < 1 || params[1] > 500) return this.errorReply("'" + params[1] + "' is not a valid integer that is between 1 and 500.");
+				tournament.prizeMoney.push(Number(params[1]));
+			}
+			this.privateModCommand("(" + user.name + " has set the prize for this tournament to be " + tournament.prizeMoney.join(', ') + " bucks.)");
+			Economy.logTransaction(user.name + " has set the prize for the tournament in " + this.room.id + " to be " + tournament.prizeMoney.join(', ') + " bucks.");
 		},
 	},
 };
@@ -1248,7 +1332,11 @@ CommandParser.commands.tournament = function (paramString, room, user) {
 			return this.sendReply("Usage: " + cmd + " <format>, <type> [, <comma-separated arguments>]");
 		}
 
-		let tour = createTournament(room, params.shift(), params.shift(), params.shift(), Config.istournamentsrated, params, this);
+		let format = params.shift();
+		let generator = params.shift();
+		let playerCap = params.shift();
+
+		let tour = createTournament(room, format, generator, (toId(generator) === 'buyin' ? Infinity : playerCap), Config.istournamentsrated, params, this, (toId(generator) === 'buyin' ? playerCap : false));
 		if (tour) {
 			this.privateModCommand("(" + user.name + " created a tournament in " + tour.format + " format.)");
 			if (room.tourAnnouncements) {

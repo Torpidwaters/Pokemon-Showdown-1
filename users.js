@@ -36,10 +36,50 @@ const fs = require('fs');
 
 let Users = module.exports = getUser;
 
-// basic initialization
+/*********************************************************
+ * Users map
+ *********************************************************/
+
 let users = Users.users = new Map();
 let prevUsers = Users.prevUsers = new Map();
 let numUsers = 0;
+
+// Low-level functions for manipulating Users.users and Users.prevUsers
+// Keeping them all here makes it easy to ensure they stay consistent
+
+Users.move = function (user, newUserid) {
+	if (user.userid === newUserid) return true;
+	if (!user) return false;
+
+	// doing it this way mathematically ensures no cycles
+	prevUsers.delete(newUserid);
+	prevUsers.set(user.userid, newUserid);
+
+	users.delete(user.userid);
+	user.userid = newUserid;
+	users.set(newUserid, user);
+
+	return true;
+};
+Users.add = function (user) {
+	if (user.userid) throw new Error("Adding a user that already exists");
+
+	numUsers++;
+	user.guestNum = numUsers;
+	user.name = 'Guest ' + numUsers;
+	user.userid = toId(user.name);
+
+	if (users.has(user.userid)) throw new Error("userid taken: " + user.userid);
+	users.set(user.userid, user);
+};
+Users.delete = function (user) {
+	prevUsers.delete('guest' + user.guestNum);
+	users.delete(user.userid);
+};
+Users.merge = function (user1, user2) {
+	prevUsers.delete(user2.userid);
+	prevUsers.set(user1.userid, user2.userid);
+};
 
 /**
  * Get a user.
@@ -79,9 +119,9 @@ Users.get = getUser;
  *
  * Like Users.get, but won't track across username changes.
  *
- * You can also pass a boolean as Users.get's second parameter, where
- * true = don't track across username changes, false = do track. This
- * is not recommended since it's less readable.
+ * Users.get(userid or username, true) is equivalent to
+ * Users.getExact(userid or username).
+ * The former is not recommended because it's less readable.
  */
 let getExactUser = Users.getExact = function (name) {
 	return getUser(name, true);
@@ -264,13 +304,12 @@ class Connection {
 // User
 class User {
 	constructor(connection) {
-		numUsers++;
 		this.mmrCache = Object.create(null);
-		this.guestNum = numUsers;
-		this.name = 'Guest ' + numUsers;
-		this.named = !!this.namelocked;
+		this.guestNum = -1;
+		this.name = "";
+		this.named = false;
 		this.registered = false;
-		this.userid = toId(this.name);
+		this.userid = '';
 		this.group = Config.groupsranking[0];
 
 		let trainersprites = [1, 2, 101, 102, 169, 170, 265, 266];
@@ -323,7 +362,7 @@ class User {
 		this.s3 = '';
 
 		// initialize
-		users.set(this.userid, this);
+		Users.add(this);
 	}
 
 	sendTo(roomid, data) {
@@ -349,10 +388,10 @@ class User {
 			return '‽' + this.name;
 		}
 		if (this.namelocked) {
-			return '✖' + this.name;
+			return '‽' + this.name;
 		}
 		if (roomid) {
-			let room = Rooms.rooms[roomid];
+			let room = Rooms(roomid);
 			if (!room) {
 				throw new Error("Room doesn't exist: " + roomid);
 			}
@@ -360,47 +399,47 @@ class User {
 				return '!' + this.name;
 			}
 			if (this.hideauth) return this.hideauth + this.name;
-			if (this.customSymbol) return this.customSymbol + this.name;
-			if (room && room.auth) {
-				if (room.auth[this.userid]) {
-					return room.auth[this.userid] + this.name;
-				}
-				if (room.isPrivate === true) return ' ' + this.name;
+			if (this.group !== ' ' && room && room.auth && !this.hideauth) {
+				if (Config.groupsranking.indexOf(this.group) > Config.groupsranking.indexOf(room.getAuth(this))) return this.group + this.name;
 			}
+			return room.getAuth(this) + this.name;
 		}
 		if (this.hideauth) return this.hideauth + this.name;
 		if (this.customSymbol) return this.customSymbol + this.name;
 		return this.group + this.name;
 	}
+	matchesRank(rank) {
+		if (!rank || rank === ' ') return true;
+		if (rank === 'confirmed') return this.confirmed;
+		if (rank === 'autoconfirmed') return this.autoconfirmed;
+		if (!(rank in Config.groups)) return true;
+		return this.group in Config.groups && Config.groups[this.group].rank >= Config.groups[rank].rank;
+	}
 	can(permission, target, room) {
 		if (this.hasSysopAccess()) return true;
 
-		let group = this.group;
-		let targetGroup = '';
-		if (target) targetGroup = target.group;
-		let groupData = Config.groups[group];
+		let group, targetGroup;
 
-		if (groupData && groupData['root']) {
-			return true;
+		if (typeof target === 'string') {
+			target = null;
+			targetGroup = target;
 		}
 
 		if (room && room.auth) {
-			if (room.auth[this.userid]) {
-				group = room.auth[this.userid];
-			} else if (room.isPrivate === true) {
-				group = ' ';
-			}
-			groupData = Config.groups[group];
-			if (target) {
-				if (room.auth[target.userid]) {
-					targetGroup = room.auth[target.userid];
-				} else if (room.isPrivate === true) {
-					targetGroup = ' ';
-				}
-			}
+			group = room.getAuth(this);
+			if (target) targetGroup = room.getAuth(target);
+		} else {
+			group = this.group;
+			if (target) targetGroup = target.group;
+		}
+		if (this.group !== ' ' && room && room.auth) {
+			if (Config.groupsranking.indexOf(this.group) > Config.groupsranking.indexOf(room.getAuth(this))) group = this.group;
 		}
 
-		if (typeof target === 'string') targetGroup = target;
+		let groupData = Config.groups[group];
+		if (groupData && groupData['root']) {
+			return true;
+		}
 
 		if (groupData && groupData[permission]) {
 			let jurisdiction = groupData[permission];
@@ -476,49 +515,7 @@ class User {
 		return this.can('promote', {group:sourceGroup}) && this.can('promote', {group:targetGroup});
 	}
 	resetName() {
-		let name = 'Guest ' + this.guestNum;
-		let userid = toId(name);
-		if (this.userid === userid && !(this.named && !this.namelocked)) return;
-
-		let i = 0;
-		while (users.has(userid) && users.get(userid) !== this) {
-			this.guestNum++;
-			name = 'Guest ' + this.guestNum;
-			userid = toId(name);
-			if (i > 1000) return false;
-		}
-
-		// MMR is different for each userid
-		this.mmrCache = {};
-		Rooms.global.cancelSearch(this);
-
-		if (this.named) this.prevNames[this.userid] = this.name;
-		prevUsers.delete(userid);
-		prevUsers.set(this.userid, userid);
-
-		this.name = name;
-		let oldid = this.userid;
-		users.delete(oldid);
-		this.userid = userid;
-		users.set(this.userid, this);
-		this.registered = false;
-		this.group = Config.groupsranking[0];
-		this.isStaff = false;
-		this.isSysop = false;
-
-		this.named = !!this.namelocked;
-		for (let i = 0; i < this.connections.length; i++) {
-			// console.log('' + name + ' renaming: connection ' + i + ' of ' + this.connections.length);
-			let initdata = '|updateuser|' + this.name + '|' + (this.named ? '1' : '0') + '|' + this.avatar;
-			this.connections[i].send(initdata);
-		}
-		for (let i in this.games) {
-			this.games[i].onRename(this, oldid, false);
-		}
-		for (let i in this.roomCount) {
-			Rooms(i).onRename(this, oldid, false);
-		}
-		return true;
+		return this.forceRename('Guest ' + this.guestNum);
 	}
 	updateIdentity(roomid) {
 		if (roomid) {
@@ -529,7 +526,6 @@ class User {
 		}
 	}
 	filterName(name) {
-		name = name.substr(0, 30);
 		if (!Config.disablebasicnamefilter) {
 			// whitelist
 			// \u00A1-\u00BF\u00D7\u00F7  Latin punctuation/symbols
@@ -552,11 +548,19 @@ class User {
 			// e-mail address
 			if (name.includes('@') && name.includes('.')) return '';
 		}
+		name = name.replace(/^[^A-Za-z0-9]+/, ""); // remove symbols from start
+
+		// cut name length down to 18 chars
+		if (/[A-Za-z0-9]/.test(name.slice(18))) {
+			name = name.replace(/[^A-Za-z0-9]+/g, "");
+		} else {
+			name = name.slice(0, 18);
+		}
+
+		name = Tools.getName(name);
 		if (Config.namefilter) {
 			name = Config.namefilter(name, this);
 		}
-		name = Tools.getName(name);
-		name = name.replace(/^[^A-Za-z0-9]+/, "");
 		return name;
 	}
 	/**
@@ -567,12 +571,11 @@ class User {
 	 * @param connection       The connection asking for the rename
 	 */
 	rename(name, token, newlyRegistered, connection) {
-		for (let i in this.roomCount) {
-			let room = Rooms(i);
-			if (room && room.rated && (this.userid in room.game.players)) {
-				this.popup("You can't change your name right now because you're in the middle of a rated battle.");
-				return false;
-			}
+		for (let id in this.games) {
+			if (this.games[id].ended) continue;
+			if (this.games[id].allowRenames) continue;
+			this.popup("You can't change your name right now because you're in the middle of a rated game.");
+			return false;
 		}
 
 		let challenge = '';
@@ -593,8 +596,15 @@ class User {
 			return false;
 		}
 
-		name = this.filterName(name);
 		let userid = toId(name);
+		if (userid.length > 18) {
+			this.send('|nametaken|' + "|Your name must be 18 characters or shorter.");
+			return false;
+		}
+		name = this.filterName(name);
+		if (name && userid !== toId(name)) {
+			name = userid;
+		}
 		if (this.registered) newlyRegistered = false;
 
 		if (!userid) {
@@ -699,27 +709,19 @@ class User {
 			} else if (userType === '4') {
 				this.autoconfirmed = userid;
 			} else if (userType === '5') {
-				Punishments.lock(this, Date.now() + PERMALOCK_CACHE_TIME, "Permalock", userid);
+				Punishments.lock(this, Date.now() + PERMALOCK_CACHE_TIME, userid, "Permalocked as " + name);
 			} else if (userType === '6') {
-				Punishments.ban(this, Date.now() + PERMALOCK_CACHE_TIME, "Permaban", userid);
+				Punishments.ban(this, Date.now() + PERMALOCK_CACHE_TIME, userid, "Permabanned as " + name);
 			}
 		}
 		let user = users.get(userid);
 		if (user && user !== this) {
 			// This user already exists; let's merge
-			if (this === user) {
-				// !!!
-				return false;
-			}
 			user.merge(this);
 
 			user.updateGroup(registered);
 
-			if (userid !== this.userid) {
-				// doing it this way mathematically ensures no cycles
-				prevUsers.delete(userid);
-				prevUsers.set(this.userid, userid);
-			}
+			Users.merge(user, this);
 			for (let i in this.prevNames) {
 				if (!user.prevNames[i]) {
 					user.prevNames[i] = this.prevNames[i];
@@ -749,37 +751,37 @@ class User {
 			return false;
 		}
 
-		if (this.named) this.prevNames[this.userid] = this.name;
-		this.name = name;
-
 		let oldid = this.userid;
 		if (userid !== this.userid) {
-			// doing it this way mathematically ensures no cycles
-			prevUsers.delete(userid);
-			prevUsers.set(this.userid, userid);
+			Rooms.global.cancelSearch(this);
+
+			if (!Users.move(this, userid)) {
+				return false;
+			}
 
 			// MMR is different for each userid
 			this.mmrCache = {};
-			Rooms.global.cancelSearch(this);
-
-			users.delete(oldid);
-			this.userid = userid;
-			users.set(userid, this);
 
 			this.updateGroup(registered);
 		} else if (registered) {
 			this.updateGroup(registered);
 		}
 
-		Punishments.checkName(this, registered);
+		if (this.named && oldid !== userid) this.prevNames[oldid] = this.name;
+		this.name = name;
+
+		let joining = !this.named;
+		this.named = (userid.substr(0, 5) !== 'guest');
+
+		if (this.named) Punishments.checkName(this, registered);
+
+		if (this.namelocked) this.named = true;
 
 		for (let i = 0; i < this.connections.length; i++) {
 			//console.log('' + name + ' renaming: socket ' + i + ' of ' + this.connections.length);
-			let initdata = '|updateuser|' + this.name + '|' + ('1' /* named */) + '|' + this.avatar;
+			let initdata = '|updateuser|' + this.name + '|' + (this.named ? '1' : '0') + '|' + this.avatar;
 			this.connections[i].send(initdata);
 		}
-		let joining = !this.named;
-		this.named = (this.userid.substr(0, 5) !== 'guest');
 		for (let i in this.games) {
 			this.games[i].onRename(this, oldid, joining);
 		}
@@ -900,7 +902,7 @@ class User {
 			for (let i = 0; i < Rooms.global.chatRooms.length; i++) {
 				let room = Rooms.global.chatRooms[i];
 				if (!room.isPrivate && !room.isPersonal && room.auth && this.userid in room.auth && room.auth[this.userid] !== '+') {
-					this.confirmed = this.userid;
+					// this.confirmed = this.userid;
 					this.autoconfirmed = this.userid;
 					break;
 				}
@@ -991,7 +993,7 @@ class User {
 		}
 	}
 	onDisconnect(connection) {
-		Wisp.updateSeen(this.userid);
+		Wisp.updateSeen(this.name);
 		for (let i = 0; i < this.connections.length; i++) {
 			if (this.connections[i] === connection) {
 				// console.log('DISCONNECT: ' + this.userid);
@@ -1101,18 +1103,13 @@ class User {
 				return false;
 			}
 		}
-		if (room.modjoin) {
-			let userGroup = this.group;
-			if (room.auth && !makeRoom) {
-				if (room.isPrivate === true) {
-					userGroup = ' ';
-				}
-				userGroup = room.auth[this.userid] || userGroup;
-			}
-			if (Config.groupsranking.indexOf(userGroup) < Config.groupsranking.indexOf(room.modjoin !== true ? room.modjoin : room.modchat)) {
+		if (room.modjoin && !makeRoom) {
+			let userGroup = room.getAuth(this);
+			let modjoinGroup = room.modjoin !== true ? room.modjoin : room.modchat;
+			if (Config.groupsranking.indexOf(userGroup) < Config.groupsranking.indexOf(modjoinGroup)) {
 				if (!this.named) {
 					return null;
-				} else if (!this.can('bypassall')) {
+				} else {
 					connection.sendTo(roomid, "|noinit|nonexistent|The room '" + roomid + "' does not exist.");
 					if (Wisp.autoJoinRooms[this.userid] && Wisp.autoJoinRooms[this.userid].includes(room.id)) {
 						Wisp.autoJoinRooms[this.userid].splice(Wisp.autoJoinRooms[this.userid].indexOf(room.id), 1);
@@ -1128,7 +1125,7 @@ class User {
 			}
 		}
 
-		if (Rooms.aliases[roomid] === room.id) {
+		if (Rooms.aliases.get(roomid) === room.id) {
 			connection.send(">" + roomid + "\n|deinit");
 		}
 
@@ -1192,7 +1189,7 @@ class User {
 	leaveRoom(room, connection, force) {
 		room = Rooms(room);
 		if (room.id === 'global' && !force) {
-			Wisp.updateSeen(this.userid);
+			Wisp.updateSeen(this.name);
 			// you can't leave the global room except while disconnecting
 			return false;
 		}
@@ -1267,7 +1264,7 @@ class User {
 			connection.popup("You are already searching a battle in that format.");
 			return Promise.resolve(false);
 		}
-		return TeamValidator(formatid).prepTeam(this.team).then(result => this.finishPrepBattle(connection, result));
+		return TeamValidator(formatid).prepTeam(this.team, this.locked || this.namelocked).then(result => this.finishPrepBattle(connection, result));
 	}
 	finishPrepBattle(connection, result) {
 		if (result.charAt(0) !== '1') {
@@ -1409,10 +1406,10 @@ class User {
 				);
 				return false;
 			} else {
-				this.chatQueue.push([message, room, connection]);
+				this.chatQueue.push([message, room.id, connection]);
 			}
 		} else if (now < this.lastChatMessage + throttleDelay) {
-			this.chatQueue = [[message, room, connection]];
+			this.chatQueue = [[message, room.id, connection]];
 			this.chatQueueTimeout = setTimeout(
 				() => this.processChatQueue(),
 				throttleDelay - (now - this.lastChatMessage));
@@ -1436,9 +1433,10 @@ class User {
 
 		this.lastChatMessage = new Date().getTime();
 
-		if (toChat[1].users) {
+		let room = Rooms(toChat[1]);
+		if (room) {
 			Monitor.activeIp = toChat[2].ip;
-			toChat[1].chat(this, toChat[0], toChat[2]);
+			room.chat(this, toChat[0], toChat[2]);
 			Monitor.activeIp = null;
 		} else {
 			// room is expired, do nothing
@@ -1457,21 +1455,17 @@ class User {
 	}
 	destroy() {
 		// deallocate user
+		for (let id in this.games) {
+			if (this.games[id].ended) continue;
+			if (this.games[id].forfeit) {
+				this.games[id].forfeit(this);
+			}
+		}
 		this.clearChatQueue();
-		users.delete(this.userid);
-		prevUsers.delete('guest' + this.guestNum);
+		Users.delete(this);
 	}
 	toString() {
 		return this.userid;
-	}
-	static pruneInactive(threshold) {
-		let now = Date.now();
-		users.forEach(user => {
-			if (user.connected) return;
-			if ((now - user.lastConnected) > threshold) {
-				user.destroy();
-			}
-		});
 	}
 }
 
@@ -1482,12 +1476,18 @@ Users.Connection = Connection;
  * Inactive user pruning
  *********************************************************/
 
-Users.pruneInactive = User.pruneInactive;
-Users.pruneInactiveTimer = setInterval(
-	User.pruneInactive,
-	1000 * 60 * 30,
-	Config.inactiveuserthreshold || 1000 * 60 * 60
-);
+Users.pruneInactive = function (threshold) {
+	let now = Date.now();
+	users.forEach(user => {
+		if (user.connected) return;
+		if ((now - user.lastConnected) > threshold) {
+			user.destroy();
+		}
+	});
+};
+Users.pruneInactiveTimer = setInterval(() => {
+	Users.pruneInactive(Config.inactiveuserthreshold || 1000 * 60 * 60);
+}, 1000 * 60 * 30);
 
 /*********************************************************
  * Routing
@@ -1567,7 +1567,8 @@ Users.socketReceive = function (worker, workerid, socketid, message) {
 	if (!room) room = Rooms.lobby || Rooms.global;
 	let user = connection.user;
 	if (!user) return;
-	if (lines.substr(0, 3) === '>> ' || lines.substr(0, 4) === '>>> ') {
+
+	if (CommandParser.multiLinePattern.test(lines)) {
 		user.chat(lines, room, connection);
 		return;
 	}

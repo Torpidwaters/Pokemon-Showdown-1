@@ -44,6 +44,17 @@ exports.BattleMovedex = {
 		inherit: true,
 		critRatio: 3,
 	},
+	curse: {
+		inherit: true,
+		effect: {
+			onStart: function (pokemon, source) {
+				this.add('-start', pokemon, 'Curse', '[of] ' + source);
+			},
+			onAfterMoveSelf: function (pokemon) {
+				this.damage(pokemon.maxhp / 4);
+			},
+		},
+	},
 	dig: {
 		inherit: true,
 		effect: {
@@ -156,6 +167,13 @@ exports.BattleMovedex = {
 			},
 		},
 	},
+	healbell: {
+		inherit: true,
+		onHit: function (target, source) {
+			this.add('-cureteam', source, '[from] move: Heal Bell');
+			source.side.pokemon.forEach(pokemon => pokemon.clearStatus());
+		},
+	},
 	highjumpkick: {
 		inherit: true,
 		onMoveFail: function (target, source, move) {
@@ -185,6 +203,7 @@ exports.BattleMovedex = {
 			onStart: function (target) {
 				this.add('-start', target, 'move: Leech Seed');
 			},
+			onAfterMoveSelfPriority: 2,
 			onAfterMoveSelf: function (pokemon) {
 				let leecher = pokemon.side.foe.active[pokemon.volatiles['leechseed'].sourcePosition];
 				if (!leecher || leecher.fainted || leecher.hp <= 0) {
@@ -308,6 +327,28 @@ exports.BattleMovedex = {
 			} else {
 				this.heal(pokemon.maxhp / 2);
 			}
+		},
+	},
+	nightmare: {
+		inherit: true,
+		effect: {
+			noCopy: true,
+			onStart: function (pokemon) {
+				if (pokemon.status !== 'slp') {
+					return false;
+				}
+				this.add('-start', pokemon, 'Nightmare');
+			},
+			onAfterMoveSelfPriority: 1,
+			onAfterMoveSelf: function (pokemon) {
+				if (pokemon.status === 'slp') this.damage(pokemon.maxhp / 4);
+			},
+			onUpdate: function (pokemon) {
+				if (pokemon.status !== 'slp') {
+					pokemon.removeVolatile('nightmare');
+					this.add('-end', pokemon, 'Nightmare', '[silent]');
+				}
+			},
 		},
 	},
 	outrage: {

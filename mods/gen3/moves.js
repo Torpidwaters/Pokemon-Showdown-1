@@ -22,6 +22,13 @@ exports.BattleMovedex = {
 		inherit: true,
 		flags: {contact: 1, protect: 1, mirror: 1},
 	},
+	aromatherapy: {
+		inherit: true,
+		onHit: function (target, source) {
+			this.add('-cureteam', source, '[from] move: Aromatherapy');
+			source.side.pokemon.forEach(pokemon => pokemon.clearStatus());
+		},
+	},
 	assist: {
 		inherit: true,
 		desc: "The user performs a random move from any of the Pokemon on its team. Assist cannot generate itself, Chatter, Copycat, Counter, Covet, Destiny Bond, Detect, Endure, Feint, Focus Punch, Follow Me, Helping Hand, Me First, Metronome, Mimic, Mirror Coat, Mirror Move, Protect, Sketch, Sleep Talk, Snatch, Struggle, Switcheroo, Thief or Trick.",
@@ -470,6 +477,15 @@ exports.BattleMovedex = {
 			spa: 1,
 		},
 	},
+	healbell: {
+		inherit: true,
+		onHit: function (target, source) {
+			this.add('-activate', source, 'move: Heal Bell');
+			source.side.pokemon.forEach(pokemon => {
+				if (!pokemon.hasAbility('soundproof')) pokemon.cureStatus(true);
+			});
+		},
+	},
 	hiddenpower: {
 		inherit: true,
 		basePower: 0,
@@ -721,6 +737,7 @@ exports.BattleMovedex = {
 		inherit: true,
 		pp: 10,
 		effect: {
+			noCopy: true,
 			onStart: function (target) {
 				this.effectData.layers = 1;
 				this.add('-start', target, 'stockpile' + this.effectData.layers);

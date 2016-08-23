@@ -294,9 +294,10 @@ exports.BattleItems = {
 			type: "Steel",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Steel' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Steel' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -491,8 +492,13 @@ exports.BattleItems = {
 			pokemon.formeChange(template);
 			pokemon.baseTemplate = template;
 			pokemon.details = template.species + (pokemon.level === 100 ? '' : ', L' + pokemon.level) + (pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.set.shiny ? ', shiny' : '');
-			this.add('detailschange', pokemon, pokemon.details);
-			this.add('-primal', pokemon);
+			if (pokemon.illusion) {
+				pokemon.ability = ''; // Don't allow Illusion to wear off
+				this.add('-primal', pokemon.illusion);
+			} else {
+				this.add('detailschange', pokemon, pokemon.details);
+				this.add('-primal', pokemon);
+			}
 			pokemon.setAbility(template.abilities['0']);
 			pokemon.baseAbility = pokemon.ability;
 		},
@@ -653,9 +659,10 @@ exports.BattleItems = {
 			type: "Rock",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Rock' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Rock' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -729,9 +736,10 @@ exports.BattleItems = {
 			type: "Normal",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Normal' && !target.volatiles['substitute']) {
+			if (move.type === 'Normal' && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -841,9 +849,10 @@ exports.BattleItems = {
 			type: "Fighting",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Fighting' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Fighting' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -874,9 +883,10 @@ exports.BattleItems = {
 			type: "Flying",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Flying' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Flying' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -896,9 +906,10 @@ exports.BattleItems = {
 			type: "Dark",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Dark' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Dark' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -1233,7 +1244,7 @@ exports.BattleItems = {
 		},
 		num: 547,
 		gen: 5,
-		desc: "If holder is hit, it immediately switches out with a chosen ally. Single use.",
+		desc: "If holder survives a hit, it immediately switches out to a chosen ally. Single use.",
 	},
 	"electirizer": {
 		id: "electirizer",
@@ -1813,9 +1824,10 @@ exports.BattleItems = {
 			type: "Dragon",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Dragon' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Dragon' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -2094,9 +2106,10 @@ exports.BattleItems = {
 			type: "Ghost",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Ghost' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Ghost' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -2116,9 +2129,10 @@ exports.BattleItems = {
 			type: "Poison",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Poison' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Poison' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -3085,9 +3099,10 @@ exports.BattleItems = {
 			type: "Fire",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Fire' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Fire' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -3167,7 +3182,7 @@ exports.BattleItems = {
 		name: "Park Ball",
 		spritenum: 325,
 		num: 500,
-		gen: 2,
+		gen: 4,
 		desc: "A special Poke Ball for the Pal Park.",
 	},
 	"passhoberry": {
@@ -3180,9 +3195,10 @@ exports.BattleItems = {
 			type: "Water",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Water' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Water' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -3202,9 +3218,10 @@ exports.BattleItems = {
 			type: "Psychic",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Psychic' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Psychic' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -3617,17 +3634,17 @@ exports.BattleItems = {
 		},
 		onAfterMoveSecondary: function (target, source, move) {
 			if (source && source !== target && source.hp && target.hp && move && move.category !== 'Status') {
-				if (!source.isActive || !this.canSwitch(source.side) || target.forceSwitchFlag) return;
+				if (!source.isActive || !this.canSwitch(source.side) || source.forceSwitchFlag || target.forceSwitchFlag) return;
 				if (target.useItem(null, source)) { // This order is correct - the item is used up even against a pokemon with Ingrain or that otherwise can't be forced out
 					if (this.runEvent('DragOut', source, target, move)) {
-						this.dragIn(source.side, source.position);
+						source.forceSwitchFlag = true;
 					}
 				}
 			}
 		},
 		num: 542,
 		gen: 5,
-		desc: "If holder is hit, it forces the attacker to switch to a random ally. Single use.",
+		desc: "If holder survives a hit, attacker is forced to switch to a random ally. Single use.",
 	},
 	"redorb": {
 		id: "redorb",
@@ -3643,8 +3660,13 @@ exports.BattleItems = {
 			pokemon.formeChange(template);
 			pokemon.baseTemplate = template;
 			pokemon.details = template.species + (pokemon.level === 100 ? '' : ', L' + pokemon.level) + (pokemon.gender === '' ? '' : ', ' + pokemon.gender) + (pokemon.set.shiny ? ', shiny' : '');
-			this.add('detailschange', pokemon, pokemon.details);
-			this.add('-primal', pokemon);
+			if (pokemon.illusion) {
+				pokemon.ability = ''; // Don't allow Illusion to wear off
+				this.add('-primal', pokemon.illusion);
+			} else {
+				this.add('detailschange', pokemon, pokemon.details);
+				this.add('-primal', pokemon);
+			}
 			pokemon.setAbility(template.abilities['0']);
 			pokemon.baseAbility = pokemon.ability;
 		},
@@ -3674,9 +3696,10 @@ exports.BattleItems = {
 			type: "Grass",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Grass' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Grass' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -3789,9 +3812,10 @@ exports.BattleItems = {
 			type: "Fairy",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Fairy' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Fairy' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -3855,7 +3879,7 @@ exports.BattleItems = {
 			if (type === 'sandstorm' || type === 'hail' || type === 'powder') return false;
 		},
 		onTryHit: function (pokemon, source, move) {
-			if (move.flags['powder'] && move.id !== 'ragepowder') {
+			if (move.flags['powder'] && pokemon !== source) {
 				this.add('-activate', pokemon, 'Safety Goggles', move.name);
 				return null;
 			}
@@ -4047,9 +4071,10 @@ exports.BattleItems = {
 			type: "Ground",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Ground' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Ground' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -4310,7 +4335,7 @@ exports.BattleItems = {
 		name: "Sport Ball",
 		spritenum: 465,
 		num: 499,
-		gen: 4,
+		gen: 2,
 		desc: "A special Poke Ball for the Bug-Catching Contest.",
 	},
 	"starfberry": {
@@ -4476,9 +4501,10 @@ exports.BattleItems = {
 			type: "Bug",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Bug' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Bug' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -4615,9 +4641,10 @@ exports.BattleItems = {
 			type: "Electric",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Electric' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Electric' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}
@@ -4813,9 +4840,10 @@ exports.BattleItems = {
 			type: "Ice",
 		},
 		onSourceModifyDamage: function (damage, source, target, move) {
-			if (move.type === 'Ice' && move.typeMod > 0 && !target.volatiles['substitute']) {
+			if (move.type === 'Ice' && move.typeMod > 0 && (!target.volatiles['substitute'] || move.flags['authentic'] || (move.infiltrates && this.gen >= 6))) {
 				if (target.eatItem()) {
 					this.debug('-50% reduction');
+					this.add('-enditem', target, this.effect, '[weaken]');
 					return this.chainModify(0.5);
 				}
 			}

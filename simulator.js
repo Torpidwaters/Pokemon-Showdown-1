@@ -13,11 +13,14 @@
 
 'use strict';
 
+global.Config = require('./config/config.js');
+
 const ProcessManager = require('./process-manager');
+const BattleEngine = require('./battle-engine').Battle;
 
 const SimulatorProcess = new ProcessManager({
 	maxProcesses: Config.simulatorprocesses,
-	execFile: 'battle-engine.js',
+	execFile: 'simulator.js',
 	onMessageUpstream: function (message) {
 		let lines = message.split('\n');
 		let battle = this.pendingTasks.get(lines[0]);
@@ -29,9 +32,6 @@ const SimulatorProcess = new ProcessManager({
 		}
 	},
 });
-
-// Create the initial set of simulator processes.
-SimulatorProcess.spawn();
 
 let slice = Array.prototype.slice;
 
@@ -231,13 +231,30 @@ class Battle {
 		case 'request': {
 			let player = this[lines[2]];
 			let rqid = lines[3];
-			if (player) {
-				this.requests[player.slot] = lines[4];
-				player.sendRoom('|request|' + lines[4]);
-			}
+
 			if (rqid !== this.rqid) {
 				this.rqid = rqid;
 				this.inactiveQueued = true;
+			}
+			if (player) {
+				const isNewRequest = !this.requests[player.slot] || +this.requests[player.slot][0] < +rqid;
+				if (isNewRequest) {
+					player.choiceIndex = 0;
+				}
+				this.requests[player.slot] = [rqid, lines[4]];
+				player.sendRoom('|request|' + (player.choiceIndex ? player.choiceIndex + '|' + player.choiceData + '\n' : '') + lines[4]);
+			}
+			break;
+		}
+
+		case 'choice': {
+			let player = this[lines[2]];
+			let rqid = lines[3];
+			let choiceIndex = +lines[4];
+			let choiceData = lines[5];
+			if (rqid === this.rqid && player) {
+				player.choiceIndex = choiceIndex;
+				player.choiceData = choiceData;
 			}
 			break;
 		}
@@ -266,7 +283,7 @@ class Battle {
 		player.updateSubchannel(connection || user);
 		let request = this.requests[player.slot];
 		if (request) {
-			(connection || user).sendTo(this.id, '|request|' + request);
+			(connection || user).sendTo(this.id, '|request|' + (player.choiceIndex ? player.choiceIndex + '|' + player.choiceData + '\n' : '') + request[1]);
 		}
 	}
 	onUpdateConnection(user, connection) {
@@ -274,6 +291,11 @@ class Battle {
 	}
 	onRename(user, oldUserid) {
 		if (user.userid === oldUserid) return;
+		if (!this.players) {
+			// !! should never happen but somehow still does
+			delete user.games[this.id];
+			return;
+		}
 		if (!(oldUserid in this.players)) {
 			if (user.userid in this.players) {
 				// this handles a user renaming themselves into a user in the
@@ -420,3 +442,109 @@ exports.SimulatorProcess = SimulatorProcess;
 exports.create = function (id, format, rated, room) {
 	return new Battle(room, format, rated);
 };
+
+if (process.send && module === process.mainModule) {
+	// This is a child process!
+
+	global.Tools = require('./tools.js').includeMods();
+	global.toId = Tools.getId;
+
+	if (Config.crashguard) {
+		// graceful crash - allow current battles to finish before restarting
+		process.on('uncaughtException', err => {
+			require('./crashlogger.js')(err, 'A simulator process');
+		});
+	}
+
+	require('./repl.js').start('battle-engine-', process.pid, cmd => eval(cmd));
+
+	let Battles = new Map();
+
+	// Receive and process a message sent using Simulator.prototype.send in
+	// another process.
+	process.on('message', message => {
+		//console.log('CHILD MESSAGE RECV: "' + message + '"');
+		let nlIndex = message.indexOf("\n");
+		let more = '';
+		if (nlIndex > 0) {
+			more = message.substr(nlIndex + 1);
+			message = message.substr(0, nlIndex);
+		}
+		let data = message.split('|');
+		if (data[1] === 'init') {
+			const id = data[0];
+			if (!Battles.has(id)) {
+				try {
+					Battles.set(id, BattleEngine.construct(id, data[2], data[3], sendBattleMessage));
+				} catch (err) {
+					if (require('./crashlogger.js')(err, 'A battle', {
+						message: message,
+					}) === 'lockdown') {
+						let ministack = Tools.escapeHTML(err.stack).split("\n").slice(0, 2).join("<br />");
+						process.send(id + '\nupdate\n|html|<div class="broadcast-red"><b>A BATTLE PROCESS HAS CRASHED:</b> ' + ministack + '</div>');
+					} else {
+						process.send(id + '\nupdate\n|html|<div class="broadcast-red"><b>The battle crashed!</b><br />Don\'t worry, we\'re working on fixing it.</div>');
+					}
+				}
+			}
+		} else if (data[1] === 'dealloc') {
+			const id = data[0];
+			if (Battles.has(id)) {
+				Battles.get(id).destroy();
+
+				// remove from battle list
+				Battles.delete(id);
+			} else {
+				require('./crashlogger.js')(new Error("Invalid dealloc"), 'A battle', {
+					message: message,
+				});
+			}
+		} else {
+			let battle = Battles.get(data[0]);
+			if (battle) {
+				let prevRequest = battle.currentRequest;
+				let prevRequestDetails = battle.currentRequestDetails || '';
+				try {
+					battle.receive(data, more);
+				} catch (err) {
+					require('./crashlogger.js')(err, 'A battle', {
+						message: message,
+						currentRequest: prevRequest,
+						log: '\n' + battle.log.join('\n').replace(/\n\|split\n[^\n]*\n[^\n]*\n[^\n]*\n/g, '\n'),
+					});
+
+					let logPos = battle.log.length;
+					battle.add('html', '<div class="broadcast-red"><b>The battle crashed</b><br />You can keep playing but it might crash again.</div>');
+					let nestedError;
+					try {
+						battle.makeRequest(prevRequest, prevRequestDetails);
+					} catch (e) {
+						nestedError = e;
+					}
+					battle.sendUpdates(logPos);
+					if (nestedError) {
+						throw nestedError;
+					}
+				}
+			} else if (data[1] === 'eval') {
+				try {
+					eval(data[2]);
+				} catch (e) {}
+			}
+		}
+	});
+
+	process.on('disconnect', () => {
+		process.exit();
+	});
+} else {
+	// Create the initial set of simulator processes.
+	SimulatorProcess.spawn();
+}
+
+// Messages sent by this function are received and handled in
+// Battle.prototype.receive in simulator.js (in another process).
+function sendBattleMessage(type, data) {
+	if (Array.isArray(data)) data = data.join("\n");
+	process.send(this.id + "\n" + type + "\n" + data);
+}

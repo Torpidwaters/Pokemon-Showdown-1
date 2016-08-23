@@ -33,18 +33,16 @@ function saveEmoticons() {
 	emoteRegex = new RegExp('(' + emoteRegex.join('|') + ')', 'g');
 }
 
-function parseEmoticons(user, message) {
-	let html = user.charAt(0) + '<button style="border:none;background:none;padding:0;font-family:Verdana,sans-serif;font-size:12px;" name="parseCommand" value="/user ' + toId(user) + '">' + '<b><font color="' + Wisp.hashColor(toId(user)) + '">' + Tools.escapeHTML(user.substr(1)) + ':</font></b></button> ';
+function parseEmoticons(user, message, room) {
 	if (emoteRegex.test(message)) {
-		message = Tools.escapeHTML(message).replace(emoteRegex, function (match) {
+		message = Wisp.parseMessage(message).replace(emoteRegex, function (match) {
 			return '<img src="' + emoticons[match] + '" title="' + match + '" height="40" width="40">';
 		});
-		return html + message;
+		return message;
 	}
 	return false;
 }
 Wisp.parseEmoticons = parseEmoticons;
-
 
 exports.commands = {
 	blockemote: 'ignoreemotes',
@@ -79,6 +77,10 @@ exports.commands = {
 			emoticons[parts[1]] = parts[2];
 			saveEmoticons();
 			this.sendReply('|raw|The emoticon "' + Tools.escapeHTML(parts[1]) + '" has been added: <img src="' + parts[2] + '">');
+			Rooms('upperstaff').add('|raw|' + Wisp.nameColor(user.name, true) + ' has added the emote "' + Tools.escapeHTML(parts[1]) +
+				'": <img width="40" height="40" src="' + parts[2] + '">').update();
+			Wisp.messageSeniorStaff('/html ' + Wisp.nameColor(user.name, true) + ' has added the emote "' + Tools.escapeHTML(parts[1]) +
+				'": <img width="40" height="40" src="' + parts[2] + '">');
 			break;
 
 		case 'delete':

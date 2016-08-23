@@ -43,11 +43,13 @@ class Dice {
 	}
 
 	join(user, self) {
-		if (this.players.length === 2) return self.errorReply("Two users have already joined this game of dice.");
+		if (this.players.length >= 2) return self.errorReply("Two users have already joined this game of dice.");
 		Economy.readMoney(user.userid, money => {
 			if (money < this.bet) return self.sendReply('You don\'t have enough money for this game of dice.');
 			if (this.players.includes(user)) return self.sendReply('You have already joined this game of dice.');
 			if (this.players.length && this.players[0].latestIp === user.latestIp) return self.errorReply("You have already joined this game of dice under the alt '" + this.players[0].name + "'.");
+			if (this.players.length >= 2) return self.errorReply("Two users have already joined this game of dice.");
+
 			this.players.push(user);
 			this.room.add('|uhtmlchange|' + this.room.diceCount + '|' + this.startMessage + '<center>' + Wisp.nameColor(user.name) + ' has joined the game!</center></div>').update();
 			if (this.players.length === 2) this.play();
@@ -55,8 +57,9 @@ class Dice {
 	}
 
 	leave(user, self) {
-		if (!this.players.includes(user)) return self.sendReply('You haven\'t joined the game of dice yet.');
-		this.players.remove(user);
+		if (!this.players.includes(user)) return self.sendReply('You haven\'t joined this game of dice yet.');
+		if (this.players.length >= 2) return self.errorReply("You cannot leave a game of dice once it has been started.");
+		this.players.splice(this.players.indexOf(user), 1);
 		this.room.add('|uhtmlchange|' + this.room.diceCount + '|' + this.startMessage + '</div>');
 	}
 
@@ -69,7 +72,7 @@ class Dice {
 					let other = (user === p1 ? p2 : p1);
 					user.sendTo(this.room, 'You have been removed from this game of dice, as you do not have enough money.');
 					other.sendTo(this.room, user.name + ' has been removed from this game of dice, as they do not have enough money. Wait for another user to join.');
-					this.players.remove(user);
+					this.players.splice(this.players.indexOf(user), 1);
 					this.room.add('|uhtmlchange|' + this.room.diceCount + '|' + this.startMessage + '<center>' + this.players.map(user => Wisp.nameColor(user.name)) + ' has joined the game!</center>').update();
 					return;
 				}
@@ -83,6 +86,7 @@ class Dice {
 				if (roll2 > roll1) this.players.reverse();
 				let winner = this.players[0], loser = this.players[1];
 
+
 				let taxedAmt = Math.round(this.bet * TAX);
 				setTimeout(() => {
 					let buck = (this.bet === 1 ? 'buck' : 'bucks');
@@ -92,11 +96,17 @@ class Dice {
 						Wisp.nameColor(p1.name, true) + ' rolled ' + (roll1 + 1) + '!<br />' +
 						Wisp.nameColor(p2.name, true) + ' rolled ' + (roll2 + 1) + '!<br />' +
 						Wisp.nameColor(winner.name, true) + ' has won <b style="color:green">' + (this.bet - taxedAmt) + '</b> ' + buck + '!<br />' +
-						'Better luck next time, ' + Tools.escapeHTML(loser.name) + '!'
+						'Better luck next time, ' + Wisp.nameColor(loser.name) + '!'
 					).update();
 					Economy.writeMoney(winner.userid, (this.bet - taxedAmt), () => {
 						Economy.writeMoney(loser.userid, -this.bet, () => {
-							this.end();
+							Economy.readMoney(winner.userid, winnerMoney => {
+								Economy.readMoney(loser.userid, loserMoney => {
+									Economy.logDice(winner.userid + " has won a dice against " + loser.userid + ". They now have " + winnerMoney + (winnerMoney === 1 ? " buck." : " bucks."));
+									Economy.logDice(loser.userid + " has lost a dice against " + winner.userid + ". T hey now have " + loserMoney + (loserMoney === 1 ? " buck." : " bucks."));
+									this.end();
+								});
+							});
 						});
 					});
 				}, 800);
@@ -115,15 +125,18 @@ exports.commands = {
 	startdice: 'dicegame',
 	dicegame: function (target, room, user) {
 		if (room.id === 'lobby') return this.errorReply("This command cannot be used in the Lobby.");
-		if (!user.can('broadcast', null, room) && room.id !== 'gamechamber') return this.errorReply("You must be ranked + or higher in this room to start a game of dice outside the Game Chamber.");
+		if (!user.can('broadcast', null, room) && room.id !== 'casino' && room.id !== 'coldfrontcasino') return this.errorReply("You must be ranked + or higher in this room to start a game of dice outside the Casino.");
 		if ((user.locked || room.isMuted(user)) && !user.can('bypassall')) return this.errorReply("You cannot use this command while unable to talk.");
 		if (room.dice) return this.errorReply("There is already a game of dice going on in this room.");
 
 		let amount = Number(target) || 1;
 		if (isNaN(target)) return this.errorReply('"' + target + '" isn\'t a valid number.');
 		if (target.includes('.') || amount < 1 || amount > 5000) return this.sendReply('The number of bucks must be between 1 and 5,000 and cannot contain a decimal.');
-
-		room.dice = new Dice(room, amount, user.name);
+		Economy.readMoney(user.userid, bucks => {
+			if (bucks < amount) return this.sendReply("You don't have " + amount + " " + (amount === 1 ? "buck" : "bucks") + ".");
+			room.dice = new Dice(room, amount, user.name);
+			this.parse("/joindice");
+		});
 	},
 
 	dicejoin: 'joindice',
@@ -146,9 +159,9 @@ exports.commands = {
 	diceend: 'enddice',
 	enddice: function (target, room, user) {
 		if (room.id === 'lobby') return this.errorReply("This command cannot be used in the Lobby.");
-		if (!this.can('broadcast', null, room)) return this.errorReply("You must be ranked + or higher in this room to end a game of dice.");
 		if ((user.locked || room.isMuted(user)) && !user.can('bypassall')) return this.sendReply("You cannot use this command while unable to talk.");
 		if (!room.dice) return this.errorReply('There is no game of dice going on in this room.');
+		if (!user.can('broadcast', null, room) && !room.dice.players.includes(user)) return this.errorReply("You must be ranked + or higher in this room to end a game of dice.");
 
 		room.dice.end(user);
 	},

@@ -182,7 +182,7 @@ if (cluster.isMaster) {
 
 	// It's optional if you don't need these features.
 
-	global.Cidr = require('./cidr');
+	global.Dnsbl = require('./dnsbl.js');
 
 	if (Config.crashguard) {
 		// graceful crash
@@ -424,7 +424,7 @@ if (cluster.isMaster) {
 	});
 
 	// this is global so it can be hotpatched if necessary
-	let isTrustedProxyIp = Cidr.checker(Config.proxyip);
+	let isTrustedProxyIp = Dnsbl.checker(Config.proxyip);
 	let socketCounter = 0;
 	server.on('connection', socket => {
 		if (!socket) {
@@ -459,6 +459,12 @@ if (cluster.isMaster) {
 		socket.on('data', message => {
 			// drop empty messages (DDoS?)
 			if (!message) return;
+			// drop messages over 100KB
+			if (message.length > 100000) {
+				console.log("Dropping client message " + (message.length / 1024) + " KB...");
+				console.log(message.slice(0, 160));
+				return;
+			}
 			// drop legacy JSON messages
 			if (typeof message !== 'string' || message.charAt(0) === '{') return;
 			// drop blank messages (DDoS?)

@@ -117,8 +117,6 @@ global.Ladders = require(Config.remoteladder ? './ladders-remote.js' : './ladder
 
 global.Users = require('./users.js');
 
-global.Cidr = require('./cidr.js');
-
 global.Punishments = require('./punishments.js');
 
 global.Rooms = require('./rooms.js');
@@ -135,11 +133,8 @@ global.Simulator = require('./simulator.js');
 
 global.Tournaments = require('./tournaments');
 
-try {
-	global.Dnsbl = require('./dnsbl.js');
-} catch (e) {
-	global.Dnsbl = {query: () => {}, reverse: require('dns').reverse};
-}
+global.Dnsbl = require('./dnsbl.js');
+Dnsbl.loadDatacenters();
 
 if (Config.crashguard) {
 	// graceful crash - allow current battles to finish before restarting
@@ -154,7 +149,7 @@ if (Config.crashguard) {
 		}
 		Rooms.global.lockdown = true;
 	});
-	process.on('unhandledRejection', function (err) {
+	process.on('unhandledRejection', err => {
 		throw err;
 	});
 }
@@ -195,3 +190,4 @@ TeamValidator.PM.spawn();
  *********************************************************/
 
 require('./repl.js').start('app', cmd => eval(cmd));
+require('./github.js');

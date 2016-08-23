@@ -32,11 +32,11 @@ function generateCSS(name, icon) {
 	let css = '';
 	let rooms = [];
 	name = toId(name);
-	for (let room in Rooms.rooms) {
-		if (Rooms.rooms[room].id === 'global' || Rooms.rooms[room].type !== 'chat' || Rooms.rooms[room].isPersonal) continue;
-		if (!isNaN(Number(Rooms.rooms[room].id.charAt(0)))) continue;
-		rooms.push('#' + Rooms.rooms[room].id + '-userlist-user-' + name);
-	}
+	Rooms.rooms.forEach((curRoom, id) => {
+		if (id === 'global' || curRoom.type !== 'chat' || curRoom.isPersonal) return;
+		if (!isNaN(Number(id.charAt(0)))) return;
+		rooms.push('#' + id + '-userlist-user-' + name);
+	});
 	css = rooms.join(', ');
 	css += '{\nbackground: url("' + icon + '") no-repeat right\n}\n';
 	return css;
@@ -57,11 +57,12 @@ exports.commands = {
 			this.sendReply("You removed " + target[0] + "'s icon.");
 			Rooms('upperstaff').add(user.name + " removed " + target[0] + "'s icon.").update();
 			this.privateModCommand("(" + target[0] + "'s icon was removed by " + user.name + ".)");
-			if (Users(target[0]) && Users(target[0]).connected) Users(target[0]).popup(user.name + " removed your icon.");
+			if (Users(target[0]) && Users(target[0]).connected) Users(target[0]).popup("|modal||html|" + Wisp.nameColor(user.name, true) + " removed your icon.");
 			return;
 		}
 
 		this.sendReply("|raw|You have given <b><font color=" + Wisp.hashColor(Tools.escapeHTML(target[0])) + ">" + Tools.escapeHTML(target[0]) + "</font></b> an icon.");
+		if (Users(target[0]) && Users(target[0]).connected) Users(target[0]).popup("|modal||html|" + Wisp.nameColor(user.name, true) + " has set your icon as : <img src='" + target[1] + "' width='32' height='32'");
 		Rooms('upperstaff').add('|raw|<b><font color="' + Wisp.hashColor(Tools.escapeHTML(target[0])) + '">' + Tools.escapeHTML(target[0]) + '</font> has received an icon from ' + Tools.escapeHTML(user.name) + '.</b>').update();
 		this.privateModCommand("(" + target[0] + " has recieved icon: '" + target[1] + "' from " + user.name + ".)");
 		icons[toId(target[0])] = target[1];
