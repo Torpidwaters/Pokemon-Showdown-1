@@ -512,6 +512,11 @@ class Tournament {
 		this.inProgressMatches.forEach((match, playerFrom) => {
 			if (match && match.to === player) matchTo = playerFrom;
 		});
+		if (this.room.isOfficial && this.generator.users.size >= 4 && (matchTo || matchFrom)) {
+			let matchRoom = matchFrom === null ? this.inProgressMatches.get(matchTo).room : matchFrom.room;
+			let opponent = matchRoom.p1.userid === player.userid ? matchRoom.p2 : matchRoom.p1;
+			Wisp.updateTourLadder(opponent, player, 'win', matchRoom);
+		}
 		if (matchTo) {
 			this.generator.setUserBusy(matchTo, false);
 			let matchRoom = this.inProgressMatches.get(matchTo).room;
