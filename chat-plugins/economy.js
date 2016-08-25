@@ -540,7 +540,7 @@ exports.commands = {
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy room">Room</button></td><td class="shop-td des">Buys a chatroom for you to own.</td><td class="shop-td pri">' + prices['room'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy icon">Icon</button></td><td class="shop-td des">Buys an icon that displays beside your name on the userlist. Size must be 32x32.</td><td class="shop-td pri">' + prices['icon'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy color">Color</button></td><td class="shop-td des">Buys a custom color change for your name. Changes the color of your name on the userlist and in the chat.</td><td class="shop-td pri">' + prices['color'] + '</td></tr>' +
-			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy pmbox">PM Box</button></td><td class="shop-td des">Buys a custom PM-box for your username. Please fill out this form: http://pastebin.com/GUcm7XwX ; PM Tailz to see an example.</td><td class="shop-td pri">' + prices['color'] + '</td></tr>' +
+			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy pmbox">PM Box</button></td><td class="shop-td des">Buys a custom PM-box for your username. Please fill out this form: http://pastebin.com/GUcm7XwX ; PM Tailz to see an example.</td><td class="shop-td pri">' + prices['pmbox'] + '</td></tr>' +
 			'</table></div><br />To buy an item from the shop, use /buy [item].<br />All sales final, no refunds will be provided.</center>'
 		);
 	},
