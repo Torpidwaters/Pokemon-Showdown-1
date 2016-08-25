@@ -605,7 +605,7 @@ class User {
 		name = this.filterName(name);
 		if (userid !== toId(name)) {
 			if (name) {
-			name = userid;
+				name = userid;
 			} else {
 				userid = '';
 			}
@@ -1193,18 +1193,18 @@ class User {
 		}
 		if (!this.inRooms.has(room.id)) {
 			return false;
-					}
+		}
 		for (let i = 0; i < this.connections.length; i++) {
 			if (connection && this.connections[i] !== connection) continue;
 			if (this.connections[i].inRooms.has(room.id)) {
-						this.connections[i].sendTo(room.id, '|deinit');
-						this.connections[i].leaveRoom(room);
-					}
+				this.connections[i].sendTo(room.id, '|deinit');
+				this.connections[i].leaveRoom(room);
+			}
 			if (connection) break;
-				}
+		}
 
 		let stillInRoom = false;
-				if (connection) {
+		if (connection) {
 			stillInRoom = this.connections.some(connection => connection.inRooms.has(room.id));
 		}
 		if (!stillInRoom) {
@@ -1226,10 +1226,10 @@ class User {
 			return Promise.resolve(false);
 		}
 		let gameCount = this.games.size;
-			if (gameCount > 4) {
-				connection.popup("Due to high load, you are limited to 4 games at the same time.");
-				return Promise.resolve(false);
-			}
+		if (gameCount > 4) {
+			connection.popup("Due to high load, you are limited to 4 games at the same time.");
+			return Promise.resolve(false);
+		}
 		if (Monitor.countPrepBattle(connection.ip || connection.latestIp, this.name)) {
 			connection.popup("Due to high load, you are limited to 6 battles every 3 minutes.");
 			return Promise.resolve(false);
@@ -1435,7 +1435,7 @@ class User {
 			if (game.ended) return;
 			if (game.forfeit) {
 				game.forfeit(this);
-		}
+			}
 		});
 		this.clearChatQueue();
 		Users.delete(this);
