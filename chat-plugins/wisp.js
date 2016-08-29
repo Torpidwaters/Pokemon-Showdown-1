@@ -832,9 +832,8 @@ exports.commands = {
 		}
 	},
 	titlehelp: ["/title set, user, title - Sets a title.",
-				"/title delete, user - Deletes a users title.",
-				"/title view, user - Shows a users title [broadcastable]",
-			],
+		"/title delete, user - Deletes a users title.",
+		"/title view, user - Shows a users title [broadcastable]"],
 
 	advertise: function (target, room, user, connection) {
 		if (room.id !== 'lobby') return this.sendReply("This command only works in the lobby.");
@@ -964,10 +963,8 @@ exports.commands = {
 		for (let u in room.users) Users(u).updateIdentity();
 		return this.privateModCommand('(' + user.name + ' has cleared the room auth list.)');
 	},
-	clearroomauthhelp: [
-		'/clearroomauth - Clears the room auth list in the current room.',
-		'/clearroomauth [rank] - Clears the room auth list of users with the rank specified.',
-	],
+	clearroomauthhelp: ['/clearroomauth - Clears the room auth list in the current room.',
+		'/clearroomauth [rank] - Clears the room auth list of users with the rank specified.'],
 
 	roomlist: function (target, room, user) {
 		if (!this.can('seniorstaff')) return;
@@ -1062,7 +1059,7 @@ exports.commands = {
 			let targetUser = Users(targets[0]);
 			let image = targets[1];
 
-			if (!targetUser || !targetUser.connected) return this.errorReply(target[0] + " is not online");
+			if (!targetUser || !targetUser.connected) return this.errorReply(targets[0] + " is not online");
 			if (!image) return this.errorReply("Please specify an image to set.");
 			if (image.length > 100) return this.errorReply("Image URLs may not be longer than 100 characters.");
 
@@ -1079,7 +1076,7 @@ exports.commands = {
 
 			let targetUser = Users(target);
 
-			if (!targetUser || !targetUser.connected) return this.errorReply(target[0] + " is not online");
+			if (!targetUser || !targetUser.connected) return this.errorReply(target + " is not online");
 
 			Wisp.setBackground(targetUser.userid, "");
 			Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has removed " + Wisp.nameColor(targetUser.name, true) + "'s profile background");
@@ -1091,10 +1088,50 @@ exports.commands = {
 			return this.parse('/help background');
 		},
 	},
-	backgroundhelp: [
-		"/background set [user], [image] - Sets a users profile background.",
-		"/background delete [user] - Deletes a users profile background.",
-	],
+	backgroundhelp: ["/background set [user], [image] - Sets a users profile background.",
+		"/background delete [user] - Deletes a users profile background."],
+	music: {
+		set: function (target, room, user) {
+			if (!this.can('music')) return false;
+			if (!target) return this.parse('/help music');
+			let targets = target.split(',');
+			for (let u in targets) targets[u] = targets[u].trim();
+			if (!targets[1]) return this.parse('/help music');
+
+			let targetUser = Users(targets[0]);
+			let song = targets[1];
+
+			if (!targetUser || !targetUser.connected) return this.errorReply(targets[0] + " is not online");
+			if (!song) return this.errorReply("Please specify a song to set.");
+			if (song.length > 100) return this.errorReply("Music URLs may not be longer than 100 characters.");
+
+			Wisp.setMusic(targetUser.userid, song);
+			Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has set " + Wisp.nameColor(targetUser.name, true) + "'s profile music to: " + Tools.escapeHTML(song));
+			Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has set " + Wisp.nameColor(targetUser.name, true) + "'s profile music to: " + Tools.escapeHTML(song));
+
+			this.sendReply("You've set " + targetUser.name + "'s profile music.");
+		},
+
+		delete: function (target, room, user) {
+			if (!this.can('music')) return false;
+			if (!target) return this.parse('/help music');
+
+			let targetUser = Users(target);
+
+			if (!targetUser || !targetUser.connected) return this.errorReply(target + " is not online");
+
+			Wisp.setMusic(targetUser.userid, "");
+			Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has removed " + Wisp.nameColor(targetUser.name, true) + "'s profile music");
+			Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has removed " + Wisp.nameColor(targetUser.name, true) + "'s profile music");
+
+			this.sendReply("You've removed " + targetUser.name + "'s profile music.");
+		},
+		'': function (target, room, user) {
+			return this.parse('/help music');
+		},
+	},
+	musichelp: ["/music set [user], [song] - Sets a users profile music.",
+		"/music delete [user] - Deletes a users profile music."],
 };
 
 Object.assign(Wisp, {
@@ -1261,6 +1298,23 @@ Object.assign(Wisp, {
 			if (err) return console('setBackground 1: ' + err);
 			Wisp.database.run("INSERT OR IGNORE INTO users (userid,background) VALUES ($userid, $background)", {$userid: userid, $background: image}, function (err) {
 				if (err) return console.log("setBackground 2: " + err);
+			});
+		});
+	},
+	getMusic: function (user, callback) {
+		let userid = toId(user);
+		Wisp.database.all("SELECT music FROM users WHERE userid=$userid", {$userid: userid}, function (err, rows) {
+			if (err) return console.log("getMusic: " + err);
+			callback((rows[0] ? rows[0].music : false));
+		});
+	},
+
+	setMusic: function (user, song) {
+		let userid = toId(user);
+		Wisp.database.run("UPDATE users SET music=$music WHERE userid=$userid;", {$music: song, $userid: userid}, function (err) {
+			if (err) return console.log('setMusic 1: ' + err);
+			Wisp.database.run("INSERT OR IGNORE INTO users (userid,music) VALUES ($userid, $music)", {$userid: userid, music: song}, function (err) {
+				if (err) return console.log("setMusic 2: " + err);
 			});
 		});
 	},

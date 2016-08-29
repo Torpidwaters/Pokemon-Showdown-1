@@ -274,6 +274,7 @@ exports.grouplist = [
 		globalonly: true,
 		tournamentsmanagement: true,
 		gamemanagement: true,
+		music: true,
 	},
 	{
 		symbol: '#',

@@ -1,7 +1,7 @@
 'use strict';
 
 Wisp.database = new sqlite3.Database('config/users.db', function () {
-	Wisp.database.run("CREATE TABLE if not exists users (userid TEXT, name TEXT, bucks INTEGER, lastSeen INTEGER, onlineTime INTEGER, credits INTEGER, title TEXT, notifystatus INTEGER, background TEXT)");
+	Wisp.database.run("CREATE TABLE if not exists users (userid TEXT, name TEXT, bucks INTEGER, lastSeen INTEGER, onlineTime INTEGER, credits INTEGER, title TEXT, notifystatus INTEGER, background TEXT, music TEXT)");
 	Wisp.database.run("CREATE TABLE if not exists friends (id integer primary key, userid TEXT, friend TEXT)");
 });
 
@@ -25,6 +25,7 @@ let prices = {
 	"poof": 25,
 	"title": 30,
 	"avatar": 35,
+	"music": 35,
 	"infobox": 40,
 	"background": 40,
 	"emote": 50,
@@ -515,6 +516,21 @@ exports.commands = {
 					});
 				});
 				matched = true;
+				break;
+			case 'music':
+				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase custom profile music.");
+				if (!targetSplit[1]) return this.sendReply("Please specify the music you would like with /buy music, [song]");
+				Economy.writeMoney(user.userid, prices[itemid] * -1, () => {
+					Economy.readMoney(user.userid, amount => {
+						Economy.logTransaction(user.userid + " has purchased custom profile music for " + prices[itemid] + " bucks. Song: " + targetSplit[1]);
+						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased custom profile music: <a href=\"" + Tools.escapeHTML(targetSplit[1]) + "\">" + Tools.escapeHTML(targetSplit[1]) +
+						"</a><br /><button name=\"send\" value=\"/music set " + user.userid + ", " + targetSplit[1] + "\">Click to add</button>");
+						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased custom profile music: " + Tools.escapeHTML(targetSplit[1])).update();
+						this.sendReply("You have purchased custom profile music. It will be added shortly.");
+					});
+				});
+				matched = true;
+				break;
 			}
 
 			if (matched) {
@@ -541,6 +557,7 @@ exports.commands = {
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy icon">Icon</button></td><td class="shop-td des">Buys an icon that displays beside your name on the userlist. Size must be 32x32.</td><td class="shop-td pri">' + prices['icon'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy color">Color</button></td><td class="shop-td des">Buys a custom color change for your name. Changes the color of your name on the userlist and in the chat.</td><td class="shop-td pri">' + prices['color'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy pmbox">PM Box</button></td><td class="shop-td des">Buys a custom PM-box for your username. Please fill out this form: http://pastebin.com/GUcm7XwX ; PM Tailz to see an example.</td><td class="shop-td pri">' + prices['pmbox'] + '</td></tr>' +
+			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy music">Profile Music</button></td><td class="shop-td des">Buys custom music for your /profile</td><td class="shop-td pri">' + prices['music'] + '</td></tr>' +
 			'</table></div><br />To buy an item from the shop, use /buy [item].<br />All sales final, no refunds will be provided.</center>'
 		);
 	},
@@ -815,7 +832,9 @@ exports.commands = {
 				Wisp.lastSeen(userid, online => {
 					Wisp.getTitle(userid, title => {
 						Wisp.getBackground(userid, background => {
-							showProfile(bucks, regdate, online, title, background);
+							Wisp.getMusic(userid, song => {
+								showProfile(bucks, regdate, online, title, background, song);
+							});
 						});
 					});
 				});
@@ -825,7 +844,7 @@ exports.commands = {
 			let leagueRank = Wisp.getLeagueRank(userid);
 
 			let self = this;
-			function showProfile(bucks, regdate, lastOnline, title, background) {
+			function showProfile(bucks, regdate, lastOnline, title, background, song) {
 				lastOnline = (lastOnline ? moment(lastOnline).format("MMMM Do YYYY, h:mm:ss A") + ' EST. (' + moment(lastOnline).fromNow() + ')' : "Never");
 				if (targetUser && targetUser.connected && targetUser.lastActive) lastOnline = moment(targetUser.lastActive).fromNow();
 				let profile = '|raw|';
@@ -838,8 +857,10 @@ exports.commands = {
 				if (bucks) profile += '&nbsp;<font color=#b30000><b>Bucks: </font></b>' + bucks + '<br />';
 				if (friendCode) profile += '&nbsp;<font color=#b30000><b>Friendcode: </font></b>' + friendCode + '<br />';
 				profile += '&nbsp;<font color=#b30000><b>Last ' + (targetUser && targetUser.connected ? 'Active' : 'Online') + ': </font></b> ' + lastOnline;
-				profile += '</div><div style="position: relative; left: 50px; background: rgba(255, 255, 255, 0.8);float: left; text-align: center; border-radius: 12px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2) inset; margin: 2px 2px 2px 0px" class="card-button">' + badges() + '</div>';
-				profile += '<br clear="all">';
+				profile += '</div><div style="float: left; position: relative;">';
+				profile += '<div style="position: relative; left: 50px; background: rgba(255, 255, 255, 0.8); float: left; text-align: center; border-radius: 12px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2) inset; margin: 2px 2px 2px 0px;" class="card-button">' + badges() + '</div>';
+				if (song) profile += '<div style="position: relative; left: 50px; background: rgba(255, 255, 255, 0.8); float: left; text-align: center; border-radius: 12px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2); margin: 2px 2px 2px 0px; clear: left; overflow: hidden; "><audio style="opacity: 0.7;"src="' + song + '" controls="" ></audio></div>';
+				profile += '</div><br clear="all">';
 				profile += '</div>';
 				self.sendReply(profile);
 				room.update();
