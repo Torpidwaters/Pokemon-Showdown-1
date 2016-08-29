@@ -1499,6 +1499,13 @@ exports.Formats = [
 		ruleset: ['Pokemon', 'Sleep Clause Mod', 'Team Preview', 'HP Percentage Mod', 'Cancel Mod', 'Mega Rayquaza Clause'],
 	},
 	{
+		name: "Metronome Challenge Cup",
+		section: "Randomized Metas",
+
+		team: 'randomCC',
+		ruleset: ['Pokemon', 'HP Percentage Mod', 'Cancel Mod', 'Team Preview'],
+	},
+	{
 		name: "Challenge Cup 1v1",
 		section: "Randomized Metas",
 

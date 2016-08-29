@@ -743,7 +743,7 @@ exports.BattleScripts = {
 		// Pick six random pokemon--no repeats, even among formes
 		// Also need to either normalize for formes or select formes at random
 		// Unreleased are okay but no CAP
-
+		const format = this.getFormat();
 		let num;
 		for (let i = 0; i < 6; i++) {
 			do {
@@ -792,25 +792,28 @@ exports.BattleScripts = {
 			let abilities = Object.values(template.abilities);
 			let ability = abilities[this.random(abilities.length)];
 
-			// Four random unique moves from the movepool
+			// Move Assignment Based on Format
 			let moves;
-			let pool = ['struggle'];
-			if (poke === 'Smeargle') {
-				pool = Object.keys(this.data.Movedex).filter(moveid => !(moveid in {'chatter':1, 'struggle':1, 'paleowave':1, 'shadowstrike':1, 'magikarpsrevenge':1}));
-			} else if (template.learnset) {
-				pool = Object.keys(template.learnset);
-				if (template.species.substr(0, 6) === 'Rotom-' || template.species.substr(0, 10) === 'Pumpkaboo-') {
-					pool = Array.from(new Set(pool.concat(Object.keys(this.getTemplate(template.baseSpecies).learnset))));
+			if (format.id === "metronomechallengecup") {
+				moves = ['metronome'];
+			} else {
+				let pool = ['struggle'];
+				if (poke === 'Smeargle') {
+					pool = Object.keys(this.data.Movedex).exclude('chatter', 'struggle', 'paleowave', 'shadowstrike', 'magikarpsrevenge');
+				} else if (template.learnset) {
+					pool = Object.keys(template.learnset);
+					if (template.species.substr(0, 6) === 'Rotom-' || template.species.substr(0, 10) === 'Pumpkaboo-') {
+						pool = pool.union(Object.keys(this.getTemplate(template.baseSpecies).learnset));
+					}
+				} else {
+					pool = Object.keys(this.getTemplate(template.baseSpecies).learnset);
 				}
-			} else {
-				pool = Object.keys(this.getTemplate(template.baseSpecies).learnset);
+				if (pool.length <= 4) {
+					moves = pool;
+				} else {
+					moves = [this.sampleNoReplace(pool), this.sampleNoReplace(pool), this.sampleNoReplace(pool), this.sampleNoReplace(pool)];
+				}
 			}
-			if (pool.length <= 4) {
-				moves = pool;
-			} else {
-				moves = [this.sampleNoReplace(pool), this.sampleNoReplace(pool), this.sampleNoReplace(pool), this.sampleNoReplace(pool)];
-			}
-
 			// Random EVs
 			let evs = {hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0};
 			let s = ["hp", "atk", "def", "spa", "spd", "spe"];
