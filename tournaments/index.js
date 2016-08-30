@@ -221,12 +221,9 @@ class Tournament {
 			return;
 		}
 
-		let gameCount = 0;
-		for (let i in user.games) { // eslint-disable-line no-unused-vars
-			gameCount++;
-		}
-		if (gameCount > 4 || Monitor.countPrepBattle(user.latestIp, user.name)) {
-			output.errorReply("Due to high load, you are unable to join this tournament.");
+		let gameCount = user.games.size;
+		if (gameCount > 4) {
+			output.errorReply("Due to high load, you are limited to 4 games at the same time.");
 			return;
 		}
 
@@ -512,6 +509,11 @@ class Tournament {
 		this.inProgressMatches.forEach((match, playerFrom) => {
 			if (match && match.to === player) matchTo = playerFrom;
 		});
+		if (this.room.isOfficial && this.generator.users.size >= 4 && (matchTo || matchFrom)) {
+			let matchRoom = matchFrom === null ? this.inProgressMatches.get(matchTo).room : matchFrom.room;
+			let opponent = matchRoom.p1.userid === player.userid ? matchRoom.p2 : matchRoom.p1;
+			Wisp.updateTourLadder(opponent, player, 'win', matchRoom);
+		}
 		if (matchTo) {
 			this.generator.setUserBusy(matchTo, false);
 			let matchRoom = this.inProgressMatches.get(matchTo).room;
@@ -1089,7 +1091,7 @@ let commands = {
 		begin: 'start',
 		start: function (tournament, user) {
 			if (tournament.startTournament(this)) {
-				this.sendModCommand("(" + user.name + " started the tournament.)");
+				this.room.sendModCommand("(" + user.name + " started the tournament.)");
 			}
 		},
 		dq: 'disqualify',

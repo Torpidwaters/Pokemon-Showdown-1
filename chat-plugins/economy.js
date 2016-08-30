@@ -32,6 +32,7 @@ let prices = {
 	"room": 75,
 	"icon": 100,
 	"color": 150,
+	"pmbox": 500,
 };
 
 let lottery = [];
@@ -297,9 +298,9 @@ exports.commands = {
 						Economy.logTransaction(user.name + " has purchased a custom symbol for " + prices[itemid] + " bucks. They now have " + amount + (amount === 1 ? " buck." : " bucks."));
 						user.canCustomSymbol = true;
 						this.sendReplyBox("You have purchased a custom symbol. You may now use /customsymbol [symbol] to change your symbol.");
-						matched = true;
 					});
 				});
+				matched = true;
 				break;
 			case 'avatar':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase an avatar.");
@@ -312,9 +313,9 @@ exports.commands = {
 						"<button name=\"send\" value=\"/customavatar delete, " + user.userid + "\">Click to remove</button>");
 						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased an avatar.").update();
 						this.sendReply("You have purchased an avatar. It will be added shortly.");
-						matched = true;
 					});
 				});
+				matched = true;
 				break;
 			case 'room':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a chat room.");
@@ -326,9 +327,9 @@ exports.commands = {
 						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased a chat room. Name: " + Tools.escapeHTML(targetSplit[1]));
 						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased a chat room named \"" + Tools.escapeHTML(targetSplit[1]) + "\".").update();
 						this.sendReply("You've purchased a chat room. You will be notified when it has been created.");
-						matched = true;
 					});
 				});
+				matched = true;
 				break;
 			case 'poof':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a poof.");
@@ -339,9 +340,9 @@ exports.commands = {
 						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased a poof message. Message: " + Tools.escapeHTML(targetSplit[1]));
 						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased a poof message. Message: " + Tools.escapeHTML(targetSplit[1])).update();
 						this.sendReply("You've purchased a poof message. It will be added shortly.");
-						matched = true;
 					});
 				});
+				matched = true;
 				break;
 			case 'title':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a user title.");
@@ -360,9 +361,9 @@ exports.commands = {
 						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased a title: <b><font color=\"" + (hex ? hex : "#b30000") + "\">" +
 						Tools.escapeHTML(targetSplit[1]) + "</b></font>").update();
 						this.sendReply("You have purchased a title. It will be added shortly.");
-						matched = true;
 					});
 				});
+				matched = true;
 				break;
 			case 'infobox':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase an infobox.");
@@ -372,9 +373,9 @@ exports.commands = {
 						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased an infobox.");
 						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased an infobox.").update();
 						this.sendReply("You have purchased an infobox. Please put everything you want on it in a pastebin including the command then send it to an Administrator, if you have any questions about what you can add pm an Admin.");
-						matched = true;
 					});
 				});
+				matched = true;
 				break;
 			case 'declare':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a declare.");
@@ -385,9 +386,9 @@ exports.commands = {
 						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased a declare. Message: " + Tools.escapeHTML(targetSplit[1]));
 						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased a declare. Message: " + Tools.escapeHTML(targetSplit[1])).update();
 						this.sendReply("You have purchased a declare. Please message an Administrator with the message you would like to declare.");
-						matched = true;
 					});
 				});
+				matched = true;
 				break;
 			case 'fix':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a fix.");
@@ -397,9 +398,9 @@ exports.commands = {
 						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased a fix.");
 						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased a fix.").update();
 						this.sendReply("You have purchased a fix. Please message an Administrator with what needs fixed.");
-						matched = true;
 					});
 				});
+				matched = true;
 				break;
 			case 'roomshop':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a room shop.");
@@ -422,6 +423,7 @@ exports.commands = {
 						Rooms.global.writeChatRoomData();
 					});
 				});
+				matched = true;
 				break;
 			case 'emote':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase an emote.");
@@ -436,9 +438,9 @@ exports.commands = {
 						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased an emote. Name: " + Tools.escapeHTML(targetSplit[1]) +
 						" <img src=\"" + targetSplit[2] + "\" width=\"40\" height=\"40\">").update();
 						this.sendReply("You have purchased an emote. It will be added shortly.");
-						matched = true;
 					});
 				});
+				matched = true;
 				break;
 			case 'background':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a profile background.");
@@ -464,9 +466,9 @@ exports.commands = {
 						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased an icon. <img src=\"" + targetSplit[1] + "\" width=\"32\" height=\"32\">" +
 						"<br /><button name=\"send\" value=\"/icon " + user.name + ", " + targetSplit[1] + "\">Click to add</button>");
 						this.sendReply("You have purchased an icon. It will be added shortly.");
-						matched = true;
 					});
 				});
+				matched = true;
 				break;
 			case 'color':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a custom color.");
@@ -480,9 +482,9 @@ exports.commands = {
 						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased a custom color. Color: <font color=\"" + targetSplit[1] +
 						"\">" + Tools.escapeHTML(user.name) + "</font>").update();
 						this.sendReply("You have purchased a custom color. It will be added shortly.");
-						matched = true;
 					});
 				});
+				matched = true;
 				break;
 			case 'ticket':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a ticket.");
@@ -501,6 +503,18 @@ exports.commands = {
 						this.sendReply("You have purchased a ticket for the next lottery draw. You now have " + count + (count === 1 ? " ticket." : " tickets."));
 					});
 				});
+				break;
+			case 'pmbox':
+				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a custom PM box.");
+				Economy.writeMoney(user.userid, prices[itemid] * -1, () => {
+					Economy.readMoney(user.userid, amount => {
+						Economy.logTransaction(user.name + " has purchased a custom PM box for " + prices[itemid] + " bucks. They now have " + amount + (amount === 1 ? " buck." : " bucks."));
+						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased a custom PM box. ");
+						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased a custom PM box. ").update();
+						this.sendReply("You have purchased a custom pm box. Please PM any global &/~ with a pastebin of your submission.");
+					});
+				});
+				matched = true;
 			}
 
 			if (matched) {
@@ -526,6 +540,7 @@ exports.commands = {
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy room">Room</button></td><td class="shop-td des">Buys a chatroom for you to own.</td><td class="shop-td pri">' + prices['room'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy icon">Icon</button></td><td class="shop-td des">Buys an icon that displays beside your name on the userlist. Size must be 32x32.</td><td class="shop-td pri">' + prices['icon'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy color">Color</button></td><td class="shop-td des">Buys a custom color change for your name. Changes the color of your name on the userlist and in the chat.</td><td class="shop-td pri">' + prices['color'] + '</td></tr>' +
+			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy pmbox">PM Box</button></td><td class="shop-td des">Buys a custom PM-box for your username. Please fill out this form: http://pastebin.com/GUcm7XwX ; PM Tailz to see an example.</td><td class="shop-td pri">' + prices['pmbox'] + '</td></tr>' +
 			'</table></div><br />To buy an item from the shop, use /buy [item].<br />All sales final, no refunds will be provided.</center>'
 		);
 	},

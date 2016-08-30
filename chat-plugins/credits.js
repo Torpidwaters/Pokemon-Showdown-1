@@ -155,6 +155,7 @@ exports.commands = {
 		}
 	},
 
+	tcr: 'transfercredits',
 	transfercredits: function (target, room, user) {
 		if (!target) return this.sendReply("Usage: /transfercredits [user], [amount]");
 		let splitTarget = target.split(',');
