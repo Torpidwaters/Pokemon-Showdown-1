@@ -70,8 +70,11 @@ exports.BattleScripts = {
 		if (!template || typeof template === 'string') template = this.getTemplate(template);
 		template = Object.assign({}, template); // shallow is enough
 		template.abilities = {'0': deltas.ability};
-		template.types = Object.assign(template.types.slice(), deltas.types).compact().unique();
-
+		if (template.types[0] === deltas.type) {
+			template.types = [deltas.type];
+		} else if (deltas.type) {
+			template.types = [template.types[0], deltas.type];
+		}
 		let baseStats = template.baseStats;
 		template.baseStats = {};
 		for (let statName in baseStats) template.baseStats[statName] = baseStats[statName] + deltas.baseStats[statName];
