@@ -748,6 +748,15 @@ exports.Formats = [
 		},
 	},
 	{
+		name: "Metronomes",
+		section: "Other Metagames",
+
+		ruleset: ['Pokemon', 'HP Percentage Mod', 'Cancel Mod', 'Team Preview', 'Recovery Clause', 'Metronome Clause', 'Moody Clause'],
+		banlist: ['Cursed Body', 'Presure', 'Pure Power', 'Huge Power',
+			'Wonder Guard', 'Parental Bond', 'Effect Spore', 'Cute Charm', 'Prankster', 'Sand Stream', 'Rough Skin', 'Protean',
+			'Snow Warning', 'Harvest', 'Flame Body', 'Poison Point', 'Poison Touch', 'Magic Bounce', 'Magic Guard', 'Iron Barbs'],
+	},
+	{
 		name: "LC UU",
 		desc: [
 			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3562639/\">LC UU</a>",
