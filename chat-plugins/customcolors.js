@@ -51,39 +51,42 @@ function generateCSS(name, color) {
 
 exports.commands = {
 	customcolour: 'customcolor',
-	customcolor: function (target, room, user) {
-		if (!this.can('customcolor')) return false;
-		target = target.split(',');
-		for (let u in target) target[u] = target[u].trim();
-		if (!target[1]) return this.parse('/help customcolor');
-		if (toId(target[0]).length > 19) return this.errorReply("Usernames are not this long...");
-		if (target[1] === 'delete') {
-			if (!Wisp.customColors[toId(target[0])]) return this.errorReply('/customcolor - ' + target[0] + ' does not have a custom color.');
-			delete Wisp.customColors[toId(target[0])];
-			updateColor();
-			this.sendReply("You removed " + target[0] + "'s custom color.");
-			Rooms('upperstaff').add(user.name + " removed " + target[0] + "'s custom color.").update();
-			this.privateModCommand("(" + target[0] + "'s custom color was removed by " + user.name + ".)");
-			if (Users(target[0]) && Users(target[0]).connected) Users(target[0]).popup(user.name + " removed your custom color.");
-			return;
-		}
+	customcolor: {
+		set: function (target, room, user) {
+			if (!this.can('customcolor')) return false;
+			target = target.split(',');
+			for (let u in target) target[u] = target[u].trim();
+			if (!target[1]) return this.parse('/help customcolor');
+			if (toId(target[0]).length > 19) return this.errorReply("Usernames are not this long...");
 
-		this.sendReply("|raw|You have given <b><font color=" + target[1] + ">" + Tools.escapeHTML(target[0]) + "</font></b> a custom color.");
-		Rooms('upperstaff').add('|raw|' + Tools.escapeHTML(target[0]) + " has recieved a <b><font color=" + target[1] + ">custom color</fon></b> from " + Tools.escapeHTML(user.name) + ".").update();
-		this.privateModCommand("(" + target[0] + " has recieved custom color: '" + target[1] + "' from " + user.name + ".)");
-		Wisp.customColors[toId(target[0])] = target[1];
-		updateColor();
+			this.sendReply("|raw|You have given <b><font color=" + target[1] + ">" + Tools.escapeHTML(target[0]) + "</font></b> a custom color.");
+			Rooms('upperstaff').add('|raw|' + Tools.escapeHTML(target[0]) + " has recieved a <b><font color=" + target[1] + ">custom color</fon></b> from " + Tools.escapeHTML(user.name) + ".").update();
+			this.privateModCommand("(" + target[0] + " has recieved custom color: '" + target[1] + "' from " + user.name + ".)");
+			Wisp.customColors[toId(target[0])] = target[1];
+			updateColor();
+		},
+		delete: function (target, room, user) {
+			if (!this.can('customicon')) return false;
+			if (!target) return this.parse('/help customcolor');
+			if (!Wisp.customColors[toId(target)]) return this.errorReply('/customcolor - ' + target + ' does not have a custom color.');
+			delete Wisp.customColors[toId(target)];
+			updateColor();
+			this.sendReply("You removed " + target + "'s custom color.");
+			Rooms('upperstaff').add(user.name + " removed " + target + "'s custom color.").update();
+			this.privateModCommand("(" + target + "'s custom color was removed by " + user.name + ".)");
+			if (Users(target) && Users(target).connected) Users(target).popup(user.name + " removed your custom color.");
+			return;
+		},
+		preview: function (target, room, user) {
+			if (!this.runBroadcast()) return;
+			target = target.split(',');
+			for (let u in target) target[u] = target[u].trim();
+			if (!target[1]) return this.parse('/help customcolor');
+			return this.sendReplyBox('<b><font size="3" color="' + target[1] + '">' + Tools.escapeHTML(target[0]) + '</font></b>');
+		},
 	},
 	customcolorhelp: ["Commands Include:",
-				"/customcolor [user], [hex] - Gives [user] a custom color of [hex]",
-				"/customcolor [user], delete - Deletes a user's custom color"],
-
-	colorpreview: function (target, room, user) {
-		if (!this.runBroadcast()) return;
-		target = target.split(',');
-		for (let u in target) target[u] = target[u].trim();
-		if (!target[1]) return this.parse('/help colorpreview');
-		return this.sendReplyBox('<b><font size="3" color="' + target[1] + '">' + Tools.escapeHTML(target[0]) + '</font></b>');
-	},
-	colorpreviewhelp: ["Usage: /colorpreview [user], [color] - Previews what that username looks like with [color] as the color."],
+				"/customcolor set [user], [hex] - Gives [user] a custom color of [hex]",
+				"/customcolor delete [user], delete - Deletes a user's custom color",
+				"/customcolor preview [user], [hex] - Previews what that username looks like with [hex] as the color."],
 };

@@ -464,7 +464,7 @@ exports.commands = {
 						Economy.logTransaction(user.name + " has purchased an icon for " + prices[itemid] + " bucks. Image: " + targetSplit[1] + ". They now have " + amount + (amount === 1 ? " buck." : " bucks."));
 						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased an icon. <img src=\"" + targetSplit[1] + "\" width=\"32\" height=\"32\">").update();
 						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased an icon. <img src=\"" + targetSplit[1] + "\" width=\"32\" height=\"32\">" +
-						"<br /><button name=\"send\" value=\"/icon " + user.name + ", " + targetSplit[1] + "\">Click to add</button>");
+						"<br /><button name=\"send\" value=\"/icon set " + user.name + ", " + targetSplit[1] + "\">Click to add</button>");
 						this.sendReply("You have purchased an icon. It will be added shortly.");
 					});
 				});
@@ -478,7 +478,7 @@ exports.commands = {
 						Economy.logTransaction(user.name + " has purchased a custom color for " + prices[itemid] + " bucks. Image: " + targetSplit[1] + ". They now have " + amount + (amount === 1 ? " buck." : " bucks."));
 						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased a custom color. Color: <font color=\"" + targetSplit[1] +
 						"\">" + Tools.escapeHTML(user.name) + "</font>" +
-						"<br /><button name=\"send\" value=\"/customcolor " + user.name + ", " + targetSplit[1] + "\">Click to add</button>");
+						"<br /><button name=\"send\" value=\"/customcolor set " + user.name + ", " + targetSplit[1] + "\">Click to add</button>");
 						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased a custom color. Color: <font color=\"" + targetSplit[1] +
 						"\">" + Tools.escapeHTML(user.name) + "</font>").update();
 						this.sendReply("You have purchased a custom color. It will be added shortly.");
