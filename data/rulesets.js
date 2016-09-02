@@ -475,6 +475,60 @@ exports.BattleFormats = {
 			this.add('rule', 'Swagger Clause: Swagger is banned');
 		},
 	},
+	metronomeclause: {
+		effectType: 'Banlist',
+		name: 'Metronome Clause',
+		banlist: ['Darkrai', 'Deoxys', 'Deoxys-Attack', 'Greninja', 'Shaymin-Sky', 'Shedinja', 'Talonflame', 'Altarianite', 'Gengarite',
+			'Kangaskhanite', 'Mawilite', 'Sablenite', 'Soul Dew', 'Rocky Helmet'],
+		onStart: function () {
+			this.add('rule', 'Metronome Clause: Only the move Metronome may be used.');
+		},
+		onValidateTeam: function (team, format) {
+			let set = team[0];
+			let problems = [];
+			let template = this.getTemplate(set.species);
+			let statkeys = Object.keys(template.baseStats);
+			let bst = 0;
+			let item = this.getItem(set.item).name;
+			for (let i = 0; i < statkeys.length; i++ ) {
+				bst += template.baseStats[statkeys[i]];
+			}
+			if (item.substr(item.length - 3) === 'ite' && item.substr(0, item.length - 3) === set.species.substr(0, item.length - 3) && set.species.substr(set.species.length - 4) != 'Mega') {
+				bst += 100;
+				let megaability = this.getTemplate(set.species + "-Mega").abilities[0];
+				for (let i = 0; i < format.banlist.length; i++) {
+					if (megaability == format.banlist[i]) problems.push('You cannot use normal ' + set.species + ' holding their mega stone because they will gain a banned ability upon mega evolving.  If you wish to use ' + set.species + '-Mega, enter it as a mega in teambuilder and manually select a legal ability.');
+				}
+			}
+			if (bst > 600) problems.push('You cannot use pokemon or mega evolve into a pokemon with a BST higher than 600.');
+			if (set.moves) {
+				if (set.moves.length > 1) problems.push('You cannot fill more than one moveslot.');
+				if (set.moves != 'Metronome') problems.push('You may only use the move metronome.');
+			}
+			if (set.level && set.level != 100) {
+				problems.push('Your pokemon must level 100.');
+			}
+			if (template.requiredAbility && set.ability !== template.requiredAbility) {
+				problems.push("" + template.species + " transforms in-battle with " + template.requiredAbility + "."); // Darmanitan-Zen
+			}
+			if (template.requiredItem && this.getItem(set.item).name !== template.requiredItem) {
+				problems.push("" + template.species + " transforms in-battle with " + template.requiredItem + '.'); // Mega or Primal
+			}
+			if (template.requiredMove && set.moves.indexOf(toId(template.requiredMove)) < 0) {
+				problems.push("" + template.species + " transforms in-battle with " + template.requiredMove + "."); // Meloetta-Pirouette, Rayquaza-Mega
+			}
+			return problems;
+		},
+	},
+	recoveryclause: {
+		effectType: 'Banlist',
+		name: 'Recovery Clause',
+		banlist: ['Water Absorb', 'Volt Absorb', 'Dry Skin', 'Rain Dish', 'Ice Body', 'Cheek Pouch', 'Poison Heal', 'Regenerator', 'Leftovers', 'Black Sludge', 'Toxic Orb', 'Sitrus Berry', 'Leppa Berry', 'Enigma Berry',
+			'Shell Bell', 'Aguav Berry', 'Figy Berry', 'Iapapa Berry', 'Mago Berry', 'Wiki Berry', 'Energy Powder', 'Berry Juice', 'Oran Berry'],
+		onStart: function () {
+			this.add('rule', 'Recovery Clause: Items or abilities that can be used for recovery are banned.');
+		},
+	},
 	batonpassclause: {
 		effectType: 'Banlist',
 		name: 'Baton Pass Clause',
