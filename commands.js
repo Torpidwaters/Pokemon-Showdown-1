@@ -850,25 +850,25 @@ exports.commands = {
 			return;
 		} else if (target === 'sync') {
 			if (room.modjoin === true) return this.errorReply(`Modjoin is already set to sync modchat in this room.`);
-				room.modjoin = true;
+			room.modjoin = true;
 			this.addModCommand(`${user.name} set modjoin to sync with modchat.`);
-			} else if (target in Config.groups) {
-				if (room.battle && !this.can('makeroom')) return;
+		} else if (target in Config.groups) {
+			if (room.battle && !this.can('makeroom')) return;
 			if (room.isPersonal && !user.can('makeroom') && target !== '+') return this.errorReply(`/modjoin - Access denied from setting modjoin past + in group chats.`);
 			if (room.modjoin === target) return this.errorReply(`Modjoin is already set to ${target} in this room.`);
-				room.modjoin = target;
+			room.modjoin = target;
 			this.addModCommand(`${user.name} set modjoin to ${target}.`);
-			} else {
+		} else {
 			this.errorReply(`Unrecognized modjoin setting.`);
 			this.parse('/help modjoin');
-				return false;
-			}
-			if (room.chatRoomData) {
-				room.chatRoomData.modjoin = room.modjoin;
-				Rooms.global.writeChatRoomData();
-			}
-			if (!room.modchat) this.parse('/modchat ' + Config.groupsranking[1]);
-			if (!room.isPrivate) this.parse('/hiddenroom');
+			return false;
+		}
+		if (room.chatRoomData) {
+			room.chatRoomData.modjoin = room.modjoin;
+			Rooms.global.writeChatRoomData();
+		}
+		if (!room.modchat) this.parse('/modchat ' + Config.groupsranking[1]);
+		if (!room.isPrivate) this.parse('/hiddenroom');
 	},
 	modjoinhelp: ["/modjoin [+|%|@|*|&|~|#|off] - Sets modjoin. Users lower than the specified rank can't join this room. Requires: # & ~",
 		"/modjoin [sync|off] - Sets modjoin. Only users who can speak in modchat can join this room. Requires: # & ~"],
