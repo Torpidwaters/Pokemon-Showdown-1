@@ -13,7 +13,7 @@
     "node-schedule": "^1.1.1",
     "node-serialize": "0.0.4",
     "origindb": "^2.6.1",
-    "sockjs": "0.3.15",
+    "sockjs": "0.3.17",
     "sqlite3": "^3.1.4",
     "uuid": "^2.0.2"
   },

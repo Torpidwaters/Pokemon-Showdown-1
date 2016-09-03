@@ -63,14 +63,23 @@ exports.Formats = [
 	{
 		name: "RU",
 		desc: [
-			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3572877/\">np: RU Stage 17</a>",
+			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3580918/\">np: RU Stage 18</a>",
 			"&bullet; <a href=\"https://www.smogon.com/dex/xy/tags/ru/\">RU Banlist</a>",
 			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3558546/\">RU Viability Ranking</a>",
 		],
 		section: "ORAS Singles",
 
+		searchShow: false,
 		ruleset: ['UU'],
 		banlist: ['UU', 'BL2'],
+	},
+	{
+		name: "RU (current)",
+		section: "ORAS Singles",
+
+		challengeShow: false,
+		ruleset: ['RU'],
+		banlist: [],
 	},
 	{
 		name: "NU",
@@ -195,18 +204,28 @@ exports.Formats = [
 	{
 		name: "Doubles OU",
 		desc: [
-			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3569913/\">np: Doubles OU Stage 4</a>",
+			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3580680/\">np: Doubles OU Stage 5</a>",
 			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3498688/\">Doubles OU Banlist</a>",
 			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3535930/\">Doubles OU Viability Ranking</a>",
 		],
 		section: "ORAS Doubles",
 
 		gameType: 'doubles',
+		searchShow: false,
 		ruleset: ['Pokemon', 'Standard Doubles', 'Swagger Clause', 'Team Preview'],
 		banlist: ['Arceus', 'Dialga', 'Giratina', 'Giratina-Origin', 'Groudon', 'Ho-Oh', 'Kyogre', 'Kyurem-White', 'Lugia',
 			'Mewtwo', 'Palkia', 'Rayquaza', 'Reshiram', 'Salamence-Mega', 'Salamencite', 'Shaymin-Sky', 'Xerneas', 'Yveltal', 'Zekrom',
 			'Soul Dew', 'Dark Void', 'Gravity ++ Grass Whistle', 'Gravity ++ Hypnosis', 'Gravity ++ Lovely Kiss', 'Gravity ++ Sing', 'Gravity ++ Sleep Powder', 'Gravity ++ Spore',
 		],
+	},
+	{
+		name: "Doubles OU (suspect test)",
+		section: "ORAS Doubles",
+
+		gameType: 'doubles',
+		challengeShow: false,
+		ruleset: ['Doubles OU'],
+		banlist: [],
 	},
 	{
 		name: "Doubles Ubers",
@@ -308,7 +327,7 @@ exports.Formats = [
 		name: "Smogon Triples",
 		desc: [
 			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3511522/\">Smogon Triples</a>",
-			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3540390/\">Smogon Triples Viability Ranking</a>",
+			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3540390/\">Triples Viability Ranking</a>",
 		],
 		section: "ORAS Triples",
 
@@ -336,31 +355,6 @@ exports.Formats = [
 		requirePentagon: true,
 	},
 	{
-		name: "Unova Classic",
-		desc: ["&bullet; <a href=\"https://www.smogon.com/forums/threads/3577932/\">Unova Classic</a>"],
-		section: "ORAS Triples",
-
-		gameType: 'triples',
-		maxForcedLevel: 50,
-		teamLength: {
-			validate: [6, 6],
-		},
-		ruleset: ['Pokemon', 'Standard GBU', 'Team Preview'],
-		banlist: [],
-		onValidateSet: function (set) {
-			let problems = [];
-			let template = this.getTemplate(set.species || set.name);
-			if (template.num > 649) {
-				problems.push(template.species + " is banned by Unova Classic.");
-			}
-			let item = this.getItem(set.item);
-			if (item.megaStone) {
-				problems.push(item.name + " is banned by Unova Classic.");
-			}
-			return problems;
-		},
-	},
-	{
 		name: "Triples Custom Game",
 		section: "ORAS Triples",
 
@@ -378,65 +372,13 @@ exports.Formats = [
 	///////////////////////////////////////////////////////////////////
 
 	{
-		name: "Nature Swap",
-		desc: ["&bullet; <a href=\"https://www.smogon.com/forums/threads/3577739/\">Nature Swap</a>"],
-		section: "OM of the Month",
-		column: 2,
-
-		ruleset: ['OU'],
-		banlist: ['Chansey', 'Cloyster'],
-
-		onBegin: function () {
-			let allPokemon = this.p1.pokemon.concat(this.p2.pokemon);
-			for (let i = 0, len = allPokemon.length; i < len; i++) {
-				let pokemon = allPokemon[i];
-				let nature = pokemon.battle.getNature(pokemon.set.nature);
-				if (nature.plus !== nature.minus) {
-					["baseTemplate", "canMegaEvo"].forEach(key => {
-						if (pokemon[key]) {
-							let template = Object.assign({}, this.getTemplate(pokemon[key]));
-							template.baseStats = Object.assign({}, template.baseStats);
-							let plus = template.baseStats[nature.plus];
-							let minus = template.baseStats[nature.minus];
-							template.baseStats[nature.plus] = minus;
-							template.baseStats[nature.minus] = plus;
-							pokemon[key] = template;
-						}
-					});
-					pokemon.formeChange(pokemon.baseTemplate);
-				}
-			}
-		},
-	},
-	{
-		name: "Follow The Leader",
-		desc: ["&bullet; <a href=\"https://www.smogon.com/forums/threads/3565685/\">Follow The Leader</a>"],
+		name: "BH Doubles",
+		desc: ["&bullet; <a href=\"https://www.smogon.com/forums/threads/3489849/\">Balanced Hackmons</a>"],
 		section: "OM of the Month",
 
-		ruleset: ['Pokemon', 'Standard', 'Team Preview', 'Swagger Clause', 'Baton Pass Clause'],
-		banlist: ['Regigigas', 'Shedinja', 'Slaking', 'Smeargle', 'Gengarite', 'Kangaskhanite', 'Lucarionite', 'Mawilite', 'Salamencite', 'Soul Dew',
-			'Arena Trap', 'Gale Wings', 'Huge Power', 'Imposter', 'Pure Power', 'Shadow Tag', 'Chatter',
-		],
-		validateSet: function (set, teamHas) {
-			let species = toId(set.species);
-			let template = this.tools.getTemplate(species);
-			if (!template.exists || template.isNonstandard) return ["" + set.species + " is not a real Pok\u00E9mon."];
-			if (template.battleOnly) template = this.tools.getTemplate(template.baseSpecies);
-			if (this.tools.getBanlistTable(this.format)[template.id] || template.tier in {'Uber': 1, 'Unreleased': 1} && template.species !== 'Aegislash') {
-				return ["" + template.species + " is banned by Follow The Leader."];
-			}
-
-			if (!teamHas.donorTemplate) teamHas.donorTemplate = template;
-			let name = set.name;
-			if (name === set.species) delete set.name;
-			set.species = teamHas.donorTemplate.species;
-			let problems = this.validateSet(set, teamHas, teamHas.donorTemplate);
-
-			set.species = template.species;
-			set.name = (name === set.species ? "" : name);
-
-			return problems;
-		},
+		gameType: 'doubles',
+		ruleset: ['Balanced Hackmons'],
+		banlist: [],
 	},
 	{
 		name: "Anything Goes",
@@ -780,21 +722,6 @@ exports.Formats = [
 		},
 		ruleset: ['Doubles OU'],
 		banlist: ['Kangaskhanite', 'Perish Song'],
-	},
-	{
-		name: "Averagemons",
-		desc: [
-			"Every Pok&eacute;mon has a stat spread of 100/100/100/100/100/100.",
-			"&bullet; <a href=\"https://www.smogon.com/forums/threads/3526481/\">Averagemons</a>",
-		],
-		section: "Other Metagames",
-
-		searchShow: false,
-		mod: 'averagemons',
-		ruleset: ['Pokemon', 'Standard', 'Evasion Abilities Clause', 'Baton Pass Clause', 'Swagger Clause', 'Team Preview'],
-		banlist: ['Smeargle', 'Gengarite', 'Kangaskhanite', 'Mawilite', 'Medichamite', 'Sableye + Prankster',
-			'DeepSeaScale', 'DeepSeaTooth', 'Eviolite', 'Light Ball', 'Soul Dew', 'Thick Club', 'Arena Trap', 'Huge Power', 'Pure Power', 'Shadow Tag', 'Chatter',
-		],
 	},
 	{
 		name: "Hidden Type",
@@ -1547,14 +1474,14 @@ exports.Formats = [
 	///////////////////////////////////////////////////////////////////
 
 	{
-		name: "[Gen 2] UU",
-		desc: ["&bullet; <a href=\"https://www.smogon.com/forums/threads/3576710/\">GSC UU</a>"],
+		name: "[Gen 3] NU",
+		desc: ["&bullet; <a href=\"https://www.smogon.com/forums/threads/3503418/\">ADV NU</a>"],
 		section: "RoA Spotlight",
 		column: 3,
 
-		mod: 'gen2',
-		ruleset: ['[Gen 2] OU'],
-		banlist: ['OU', 'BL'],
+		mod: 'gen3',
+		ruleset: ['[Gen 3] OU'],
+		banlist: ['OU', 'BL', 'UU'],
 	},
 
 	// BW2 Singles
