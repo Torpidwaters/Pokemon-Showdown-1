@@ -2256,7 +2256,12 @@ exports.commands = {
 		Rooms.global.declareIds.push(declareId);
 
 		Rooms.rooms.forEach((curRoom, id) => {
-			if (id !== 'global' && !curRoom.disableGlobalDeclares) curRoom.add((curRoom.type === "battle" ? '|raw|' : '|uhtml|' + declareId + '|') + '<div class="broadcast-blue"><b>' + target + '</b></div>').update();
+			if (id !== 'global' && !curRoom.disableGlobalDeclares) {
+				curRoom.add((curRoom.type === "battle" ? '|raw|' : '|uhtml|' + declareId + '|') +
+					'<div class="infobox"><center><b><font size=1><u>Global Declare by ' +
+					(Config.groups[user.group].name.toLowerCase().charAt(0) === 'a' ? 'an ' : 'a ') + Tools.escapeHTML(Config.groups[user.group].name) + '</u></font></b><br /><br />' +
+					target + '</center></div>').update();
+			}
 		});
 		this.logModCommand(user.name + " globally declared " + target + "(id: " + declareId + ")");
 	},
