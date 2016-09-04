@@ -122,7 +122,7 @@ exports.commands = {
 		if (!targets[1]) return this.errorReply("Please specify a phrase to search.");
 
 		if (toId(targets[0]) === 'all' && !this.can('hotpatch')) return false;
-		if (!Rooms(targets[0]) && !this.can('hotpatch') || !this.can('mute', null, Rooms(targets[0]))) return false;
+		if (!permissionCheck(user, toId(targets[0]))) return false;
 
 		let pattern = escapeRegExp(targets[1]).replace(/\\\*/g, '.*');
 		let command = 'grep -Rnw \'./logs/chat/' + (toId(targets[0]) === 'all' ? '' : toId(targets[0])) + '\' -e "' + pattern + '"';
