@@ -124,6 +124,9 @@ exports.commands = {
 		if (toId(targets[0]) === 'all' && !this.can('hotpatch')) return false;
 		if (!permissionCheck(user, toId(targets[0]))) return false;
 
+		fs.appendFile('logs/viewlogs.log', '[' + new Date().toUTCString() + '] ' + user.name + " searched the logs of " + toId(targets[0]) +
+		" for '" + targets[1] + "'." + '\n');
+
 		let pattern = escapeRegExp(targets[1]).replace(/\\\*/g, '.*');
 		let command = 'grep -Rnw \'./logs/chat/' + (toId(targets[0]) === 'all' ? '' : toId(targets[0])) + '\' -e "' + pattern + '"';
 
