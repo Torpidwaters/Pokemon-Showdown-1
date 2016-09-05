@@ -63,7 +63,7 @@ class GuessTheAnime {
 
 				let chars = anime.characters.filter(data => data.role === "Main");
 				let randChar = chars[Math.floor(Math.random() * chars.length)];
-				this.char = randChar.name_first + ' ' + randChar.name_last;
+				this.char = (randChar.name_first || '') + ' ' + (randChar.name_last || '');
 
 				return Promise.resolve(
 					nani.get('character/' + randChar.id + '/page').then(char => {
