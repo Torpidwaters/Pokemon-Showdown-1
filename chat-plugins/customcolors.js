@@ -84,6 +84,9 @@ exports.commands = {
 			if (!target[1]) return this.parse('/help customcolor');
 			return this.sendReplyBox('<b><font size="3" color="' + target[1] + '">' + Tools.escapeHTML(target[0]) + '</font></b>');
 		},
+		'': function (target, room, user) {
+			return this.parse("/help customcolor");
+		},
 	},
 	customcolorhelp: ["Commands Include:",
 				"/customcolor set [user], [hex] - Gives [user] a custom color of [hex]",

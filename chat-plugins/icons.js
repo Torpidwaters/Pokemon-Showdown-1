@@ -70,6 +70,9 @@ exports.commands = {
 			if (Users(target) && Users(target).connected) Users(target).popup("|modal||html|" + Wisp.nameColor(user.name, true) + " removed your icon.");
 			return;
 		},
+		'': function (target, room, user) {
+			return this.parse("/help icon");
+		},
 	},
 	iconhelp: [
 		"Commands Include:",
