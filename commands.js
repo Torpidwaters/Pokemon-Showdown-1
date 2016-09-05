@@ -586,6 +586,7 @@ exports.commands = {
 		if (!id) return this.parse('/help makechatroom');
 		// Check if the name already exists as a room or alias
 		if (Rooms.search(id)) return this.errorReply("The room '" + target + "' already exists.");
+		if (id.length > 30) return this.errorReply("Room titles may not be longer than 30 characters.");
 		if (!Rooms.global.addChatRoom(target)) return this.errorReply("An error occurred while trying to create the room '" + target + "'.");
 		let targetRoom = Rooms.search(target);
 
