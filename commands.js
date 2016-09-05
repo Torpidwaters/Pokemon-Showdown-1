@@ -2397,6 +2397,10 @@ exports.commands = {
 
 		this.addModCommand("" + targetUser.name + "'s messages were cleared from room " + room.id + " by " + user.name + ".");
 		this.add('|unlink|' + hidetype + userid);
+		if (hidetype === 'hide|' || room.id === 'lobby') {
+			room.add('|uhtmlchange|' + userid + '|');
+			if (userid !== toId(this.inputUsername)) this.add('|uhtmlchange|' + toId(this.inputUsername) + '|');
+		}
 		if (userid !== toId(this.inputUsername)) this.add('|unlink|' + hidetype + toId(this.inputUsername));
 	},
 	hidetexthelp: ["/hidetext [username] - Removes a locked or banned user's messages from chat (includes users banned from the room). Requires: % (global only), @ * # & ~"],

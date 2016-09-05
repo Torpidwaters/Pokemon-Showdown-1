@@ -861,14 +861,14 @@ exports.commands = {
 		if (!message) return;
 
 		if (!room.lastAdvertisement) {
-			room.add('|raw|<div class="infobox"><strong><font color=#2DA900>Advertisement: </font></strong> ' + Wisp.parseMessage(message) + ' - ' + Wisp.nameColor(user.name) + '</div>');
+			room.add('|uhtml|' + user.userid + '|<div class="infobox"><strong><font color=#2DA900>Advertisement: </font></strong> ' + Wisp.parseMessage(message) + ' - ' + Wisp.nameColor(user.name) + '</div>');
 			room.update();
 			room.lastAdvertisement = Date.now();
 			return;
 		}
 
 		if ((Date.now() - room.lastAdvertisement) >= 5 * 60 * 1000) {
-			room.add('|raw|<div class="infobox"><strong><font color=#2DA900>Advertisement: </font></strong> ' + Wisp.parseMessage(message) + ' - ' + Wisp.nameColor(user.name) + '</div>');
+			room.add('|uhtml|' + user.userid + '|<div class="infobox"><strong><font color=#2DA900>Advertisement: </font></strong> ' + Wisp.parseMessage(message) + ' - ' + Wisp.nameColor(user.name) + '</div>');
 			room.update();
 			room.lastAdvertisement = Date.now();
 			return;
@@ -1375,7 +1375,7 @@ if (!Config.advertisementTimer) {
 		let ip = Object.keys(Advertisements)[0];
 		let message = Advertisements[ip].message;
 		let user = Advertisements[ip].user;
-		Rooms('lobby').add('|raw|<div class="infobox"><strong><font color="#2DA900">Advertisement: </font></strong> ' + Wisp.parseMessage(message) + ' - ' + Wisp.nameColor(user) + '</div>');
+		Rooms('lobby').add('|uhtml|' + toId(user) + '|<div class="infobox"><strong><font color="#2DA900">Advertisement: </font></strong> ' + Wisp.parseMessage(message) + ' - ' + Wisp.nameColor(user) + '</div>');
 		Rooms('lobby').update();
 		delete Advertisements[ip];
 	}, 5 * 60 * 1000);
