@@ -222,12 +222,16 @@ function parseMessage(message, user) {
 		div = "chat";
 		if (lineSplit.slice(4).join('|').match(highlight)) div = "chat highlighted";
 
-		let date = new Date();
+		while (lineSplit[2].length < 13) lineSplit[2] = lineSplit[2] + "0";
+
+		console.log('zzz: ' + lineSplit[2]);
+
+		let date = new Date(Number(lineSplit[2]));
 		let components = [date.getHours(), date.getMinutes(), date.getSeconds()];
 		timestamp = components.map(function (x) { return (x < 10) ? '0' + x : x;}).join(':');
 
 		message = '<span class="' + div + '"><small>[' + timestamp + ']</small> ' + '<small>' + name.substr(0, 1) +
-		'</small>' + Wisp.nameColor(name, true) + '<em>' +
+		'</small>' + Wisp.nameColor(toId(name), true) + '<em>' +
 		Wisp.parseMessage(lineSplit.slice(4).join('|')) + '</em></span>';
 		break;
 	case 'uhtml':
