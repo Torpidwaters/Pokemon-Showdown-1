@@ -1336,10 +1336,10 @@ exports.commands = {
 		if (!parts[1]) return this.errorReply("Please specify a card to transfer.");
 
 		// find targetUser and the card being transfered.
-		let targetUser = Users(parts[0]);
+		let targetUser = parts[0];
 		let card = toId(parts[1]);
 
-		if (!targetUser || !targetUser.connected) return this.errorReply(parts[0] + " is not online.");
+		if (toId(targetUser).length > 19) return this.errorReply("Usernames may not be longer than 19 characters.");
 		if (!cardData[card]) return this.errorReply("That card does not exist.");
 
 		database.all("SELECT * FROM cards WHERE userid=$userid AND id=$card", {$userid: user.userid, $card: card}, (err, rows) => {
@@ -1347,14 +1347,14 @@ exports.commands = {
 			if (!rows[0]) return this.sendReply("You don't have that card.");
 
 			if (cmd === "transfercard") {
-				return user.popup('|html|<center><button name="send" value="/confirmtransfercard ' + target + '" style="background-color:red;height:65px;width:150px"><b><font color="white" size=3>Confirm Transfer to ' + Wisp.nameColor(targetUser.userid, true) + '</font></b></button>');
+				return user.popup('|html|<center><button name="send" value="/confirmtransfercard ' + target + '" style="background-color:red;height:65px;width:150px"><b><font color="white" size=3>Confirm Transfer to ' + Wisp.nameColor(targetUser, true) + '</font></b></button>');
 			}
 
 			takeCard(user.userid, card, () => {
-				addCard(targetUser.userid, card, () => {
-					logTrade(user.userid + " transfered " + card + " to " + targetUser.userid + ".");
-					user.popup("You have sucessfully transfered " + card + " to " + targetUser.name + ".");
-					targetUser.popup("|modal|" + user.name + " has transferred the card " + card + " to you.");
+				addCard(toId(targetUser), card, () => {
+					logTrade(user.userid + " transfered " + card + " to " + toId(targetUser) + ".");
+					user.popup("You have sucessfully transfered " + card + " to " + targetUser + ".");
+					if (Users(targetUser) && Users(targetUser).connected) Users(targetUser).popup("|modal|" + user.name + " has transferred the card " + card + " to you.");
 				});
 			});
 		});
@@ -1365,23 +1365,23 @@ exports.commands = {
 	transferallcards: function (target, room, user, connection, cmd) {
 		if (!target) return this.parse("/help transferallcards");
 		if (toId(target) === user.userid) return this.errorReply("You cannot transfer cards to yourself.");
-		let targetUser = Users(target);
-		if (!targetUser || !targetUser.connected) return this.errorReply("That user is not online.");
+		let targetUser = target;
+		if (toId(targetUser).length > 19) return this.errorReply("Usernames may not be longer than 19 characters.");
 
 		database.all("SELECT * FROM cards WHERE userid=$userid", {$userid: user.userid}, (err, rows) => {
 			if (err) return console.log("transferallcards 1: " + err);
 			if (!rows[0]) return this.errorReply("You don't have any cards.");
 
 			if (cmd === "transferallcards") {
-				return user.popup('|html|<center><button name="send" value="/confirmtransferallcards ' + target + '" style="background-color:red;height:65px;width:150px"><b><font color="white" size=3>Confirm Transfer to ' + Wisp.nameColor(targetUser.userid, true) + '</font></b></button>');
+				return user.popup('|html|<center><button name="send" value="/confirmtransferallcards ' + target + '" style="background-color:red;height:65px;width:150px"><b><font color="white" size=3>Confirm Transfer to ' + Wisp.nameColor(targetUser, true) + '</font></b></button>');
 			}
 
-			database.run("UPDATE cards SET userid=$targetUser WHERE userid=$userid", {$targetUser: targetUser.userid, $userid: user.userid}, err => {
+			database.run("UPDATE cards SET userid=$targetUser WHERE userid=$userid", {$targetUser: toId(targetUser), $userid: user.userid}, err => {
 				if (err) return console.log("tranferallcards 2: " + err);
 				updatePoints(user.userid);
-				updatePoints(targetUser.userid);
-				user.popup("You have transfered all of your cards to " + targetUser.name + ".");
-				logTrade(user.userid + " transferred all of their cards to " + targetUser.userid);
+				updatePoints(targetUser);
+				user.popup("You have transfered all of your cards to " + targetUser + ".");
+				logTrade(user.userid + " transferred all of their cards to " + toId(targetUser));
 			});
 		});
 	},
@@ -1396,14 +1396,14 @@ exports.commands = {
 
 		if (!parts[1]) return this.parse("/help givecard");
 
-		let targetUser = Users(parts[0]);
+		let targetUser = parts[0];
 		let cardId = toId(parts[1]);
-		if (!targetUser || !targetUser.connected) return this.errorReply("That user is not online.");
+		if (toId(targetUser).length > 19) return this.errorReply("Usernames may not be longer than 19 characters.");
 		if (!cardData[cardId]) return this.errorReply("The card '" + cardId + "' does not exist.");
 
 		addCard(targetUser, cardId);
-		user.popup("You've given the card " + cardData[cardId].name + " to " + targetUser.name + ".");
-		logTrade(user.userid + " gave the card " + cardId + " to " + targetUser.userid);
+		this.sendReply("You've given the card " + cardData[cardId].name + " to " + targetUser + ".");
+		logTrade(user.userid + " gave the card " + cardId + " to " + toId(targetUser));
 	},
 	givecardhelp: ["/givecard [user], [card id] - Gives a card to a user."],
 
@@ -1415,16 +1415,16 @@ exports.commands = {
 
 		if (!parts[1]) return this.parse("/help takecard");
 
-		let targetUser = Users(parts[0]);
+		let targetUser = parts[0];
 		let cardId = toId(parts[1]);
 
-		if (!targetUser || !targetUser.connected) return this.errorReply("That user is not online.");
+		if (toId(targetUser).length > 19) return this.errorReply("Usernames may not be longer than 19 characters.");
 		if (!cardData[cardId]) return this.errorReply("The card '" + cardId + "' does not exist.");
 
 
-		takeCard(targetUser.userid, cardId);
-		user.popup("You have successfully taken " + cardData[cardId].name + " from " + targetUser.name + ".");
-		logTrade(user.userid + " took the card " + cardId + " from " + targetUser.userid);
+		takeCard(targetUser, cardId);
+		this.sendReply("You have successfully taken " + cardData[cardId].name + " from " + targetUser + ".");
+		logTrade(user.userid + " took the card " + cardId + " from " + toId(targetUser));
 	},
 	takecardhelp: ["/takecard [user, [card id] - Takes a card from a user."],
 };
