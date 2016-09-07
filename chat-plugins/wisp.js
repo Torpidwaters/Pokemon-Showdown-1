@@ -1095,6 +1095,35 @@ exports.commands = {
 		"/background set [user], [image] - Sets a users profile background.",
 		"/background delete [user] - Deletes a users profile background.",
 	],
+
+	banlist: function (target, room, user) {
+		if (!this.can('lock')) return false;
+		if (Punishments.ips.size < 1) return this.sendReply("There's no banned or locked users.");
+		let users = {};
+		let output = '|raw|<div style="max-height: 300px; overflow-y: scroll;"><table border="1" cellspacing="0" cellpadding="5">';
+		output += '<tr><th>Name</th><th>IP</th><th>Type</th><th>Expires</th><th>Reason</th></tr>';
+		Punishments.ips.forEach((arr, ip) => {
+			if (users[arr[1]] || Date.now() >= arr[2]) return;
+			users[arr[1]] = {
+				ip: (user.group !== '%' ? ip : '*'),
+				type: arr[0],
+				expires: arr[2],
+				reason: (arr[3] ? Tools.escapeHTML(arr[3]) : 'N/A'),
+			};
+		});
+
+		let sorted = Object.keys(users).sort(function (a, b) {
+			return users[a].expires - users[b].expires;
+		});
+
+		for (let u in sorted) {
+			output += '<tr><td>' + Wisp.nameColor(sorted[u], true) + '</td><td>' + users[sorted[u]].ip + '</td><td>' + users[sorted[u]].type + '</td><td>' + moment(users[sorted[u]].expires).fromNow() +
+				'</td><td>' + users[sorted[u]].reason + '</td></tr>';
+		}
+
+		output += '</div>';
+		return this.sendReply(output);
+	},
 };
 
 Object.assign(Wisp, {
