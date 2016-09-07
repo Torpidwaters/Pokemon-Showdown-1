@@ -2214,9 +2214,10 @@ exports.commands = {
 			room.add('|uhtmlchange|' + target + '|').update();
 			room.declareIds.splice(room.declareIds.indexOf(target), 1);
 		}
+		this.privateModCommand("(" + user.name + " cleared the declare with the id " + target + ")");
 	},
 
-	clearalldeclares: function (target, room, user) {
+	clearallgdeclares: function (target, room, user) {
 		if (!this.can('gdeclare')) return false;
 		if (Rooms.global.declareIds.length < 1) return this.errorReply("There's no global declares to clear.");
 		for (let u in Rooms.global.declareIds) {
@@ -2225,6 +2226,17 @@ exports.commands = {
 			});
 		}
 		Rooms.global.declareIds = [];
+		this.privateModCommand("(" + user.name + " cleared all global declares.)");
+	},
+
+	clearalldeclares: function (target, room, user) {
+		if (!this.can('declare', null, room)) return false;
+		if (!room.declareIds || room.declareIds.length < 1) return this.errorReply("There's no declares to clear.");
+		for (let u in room.declareIds) {
+			room.add('|uhtmlchange|' + room.declareIds[u] + '|').update();
+		}
+		room.declareIds = [];
+		this.privateModCommand("(" + user.name + " cleared all declares in this room.)");
 	},
 
 	declare: function (target, room, user) {
