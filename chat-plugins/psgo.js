@@ -136,7 +136,7 @@ function takeCard(userid, card, callback) {
 	database.all("SELECT * FROM cards WHERE userid=$userid AND id=$card", {$userid: userid, $card: card}, function (err, rows) {
 		if (err) return console.log("takeCard 1: " + err);
 		if (rows.length < 1) {
-			return callback(false);
+			if (callback) return callback(false);
 		} else {
 			database.run("DELETE FROM cards WHERE userid=$userid AND uid=$uid", {$userid: userid, $uid: rows[0].uid}, function (err) {
 				if (err) return console.log("takeCard 3: " + err);
@@ -1422,9 +1422,11 @@ exports.commands = {
 		if (!cardData[cardId]) return this.errorReply("The card '" + cardId + "' does not exist.");
 
 
-		takeCard(targetUser, cardId);
-		this.sendReply("You have successfully taken " + cardData[cardId].name + " from " + targetUser + ".");
-		logTrade(user.userid + " took the card " + cardId + " from " + toId(targetUser));
+		takeCard(targetUser, cardId, status => {
+			if (!status) return this.sendReply("That user does not have that card.");
+			this.sendReply("You have successfully taken " + cardData[cardId].name + " from " + targetUser + ".");
+			logTrade(user.userid + " took the card " + cardId + " from " + toId(targetUser));
+		});
 	},
 	takecardhelp: ["/takecard [user, [card id] - Takes a card from a user."],
 };
