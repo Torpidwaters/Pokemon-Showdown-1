@@ -272,7 +272,7 @@ class Tournament {
 			return;
 		}
 
-		if (toId(this.generator.name).substr(5) === 'buyin') {
+		if (toId(this.generator.name).includes('buyin')) {
 			this.room.tournamentPool -= this.room.tournamentBuyin;
 			Economy.writeMoney(user.userid, this.room.tournamentBuyin);
 		}
@@ -1000,7 +1000,7 @@ function deleteTournament(id, output) {
 		output.errorReply(id + " doesn't exist.");
 		return false;
 	}
-	if (toId(tournament.generator.name).substr(5) === 'buyin') {
+	if (toId(tournament.generator.name).includes('buyin')) {
 		let amount = tournament.room.tournamentBuyin;
 		let users = usersToNames(tournament.generator.getUsers().sort());
 		Economy.writeMoneyArr(users, amount);
