@@ -52,7 +52,7 @@ exports.commands = {
 				output += '<tr><td>' + badgeImg(badgeData[1], badge) + '</td> <td>' + badge + '</td> <td>' + badgeData[0] + '</td><tr>';
 			});
 			output += '<table>';
-			this.sendReplyBox(output);
+			this.sendReply('|html|<div class = "infobox' + (this.broadcasting ? '-limited' : '') + '">' + output + '</div>');
 			break;
 		case 'info':
 			if (!this.runBroadcast()) return;
