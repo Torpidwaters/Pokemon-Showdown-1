@@ -228,6 +228,8 @@ class Validator {
 
 					if (template.unreleasedHidden && banlistTable['Unreleased']) {
 						problems.push(name + "'s hidden ability is unreleased.");
+					} else if (set.species.endsWith('Orange') || set.species.endsWith('White') && ability.name === 'Symbiosis') {
+						problems.push(name + "'s hidden ability is unreleased for the Orange and White forms.");
 					} else if (tools.gen === 5 && set.level < 10 && (template.maleOnlyHidden || template.gender === 'N')) {
 						problems.push(name + " must be at least level 10 with its hidden ability.");
 					}
@@ -496,7 +498,11 @@ class Validator {
 
 		if (teamHas) {
 			for (let i in setHas) {
-				teamHas[i] = true;
+				if (i in teamHas) {
+					teamHas[i]++;
+				} else {
+					teamHas[i] = 1;
+				}
 			}
 		}
 		for (let i = 0; i < format.setBanTable.length; i++) {
@@ -863,10 +869,8 @@ function getValidator(format) {
 
 const ProcessManager = require('./process-manager');
 
-PM = TeamValidator.PM = new ProcessManager({
-	maxProcesses: global.Config && Config.validatorprocesses,
-	execFile: 'team-validator',
-	onMessageUpstream: function (message) {
+class TeamValidatorManager extends ProcessManager {
+	onMessageUpstream(message) {
 		// Protocol:
 		// success: "[id]|1[details]"
 		// failure: "[id]|0[details]"
@@ -878,8 +882,9 @@ PM = TeamValidator.PM = new ProcessManager({
 			this.pendingTasks.delete(id);
 			this.release();
 		}
-	},
-	onMessageDownstream: function (message) {
+	}
+
+	onMessageDownstream(message) {
 		// protocol:
 		// "[id]|[format]|[removeNicknames]|[team]"
 		let pipeIndex = message.indexOf('|');
@@ -893,8 +898,9 @@ PM = TeamValidator.PM = new ProcessManager({
 		let team = message.substr(nextPipeIndex + 1);
 
 		process.send(id + '|' + this.receive(format, removeNicknames, team));
-	},
-	receive: function (format, removeNicknames, team) {
+	}
+
+	receive(format, removeNicknames, team) {
 		let parsedTeam = Tools.fastUnpackTeam(team);
 		removeNicknames = removeNicknames === '1';
 
@@ -917,7 +923,15 @@ PM = TeamValidator.PM = new ProcessManager({
 			// console.log('TO: ' + packedTeam);
 			return '1' + packedTeam;
 		}
-	},
+	}
+}
+
+TeamValidator.TeamValidatorManager = TeamValidatorManager;
+
+PM = TeamValidator.PM = new TeamValidatorManager({
+	execFile: __filename,
+	maxProcesses: global.Config ? Config.validatorprocesses : 1,
+	isChatBased: false,
 });
 
 if (process.send && module === process.mainModule) {

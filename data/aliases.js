@@ -368,6 +368,7 @@ exports.BattleAliases = {
 	"cc": "Close Combat",
 	"cm": "Calm Mind",
 	"dd": "Dragon Dance",
+	"dv": "Dark Void",
 	"eq": "Earthquake",
 	"espeed": "ExtremeSpeed",
 	"faintattack": "Feint Attack",
