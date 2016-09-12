@@ -224,8 +224,6 @@ function parseMessage(message, user) {
 
 		while (lineSplit[2].length < 13) lineSplit[2] = lineSplit[2] + "0";
 
-		console.log('zzz: ' + lineSplit[2]);
-
 		let date = new Date(Number(lineSplit[2]));
 		let components = [date.getHours(), date.getMinutes(), date.getSeconds()];
 		timestamp = components.map(function (x) { return (x < 10) ? '0' + x : x;}).join(':');
