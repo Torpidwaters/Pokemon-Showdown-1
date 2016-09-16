@@ -668,7 +668,7 @@ exports.commands = {
 				.then(data => {
 					let css = 'text-shadow: 1px 1px 1px #CCC; padding: 3px 8px;';
 					let output = '<div class="infobox"><table width="100%"><tr>';
-					let description = data.description.replace(/(\r\n|\n|\r)/gm, "").split('<br><br>').join('<br>');
+					let description = (data.description ? data.description.replace(/(\r\n|\n|\r)/gm, "").split('<br><br>').join('<br>') : "N/A");
 					if (description.indexOf('&lt;br&gt;&lt;br&gt;') >= 0) description = description.substr(0, description.indexOf('&lt;br&gt;&lt;br&gt;'));
 					if (description.indexOf('<br>') >= 0) description = description.substr(0, description.indexOf('<br>'));
 					output += '<td style="' + css + ' background: rgba(170, 165, 215, 0.5); box-shadow: 2px 2px 5px rgba(170, 165, 215, 0.8); border: 1px solid rgba(170, 165, 215, 1); border-radius: 5px; color: #2D2B40; text-align: center; font-size: 15pt;"><b>' + data.title_romaji + '</b></td>';
@@ -683,6 +683,9 @@ exports.commands = {
 					amCache.anime[id] = output;
 					this.sendReply('|raw|' + output);
 					room.update();
+				}).catch(error => {
+					this.errorReply("Error displaying anime.");
+					console.log("Error displaying anime (" + target + "): " + error);
 				});
 		})
 		.catch(error => {
