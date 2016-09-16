@@ -70,6 +70,11 @@ exports.commands = {
 			if (Users(target) && Users(target).connected) Users(target).popup("|modal||html|" + Wisp.nameColor(user.name, true) + " removed your icon.");
 			return;
 		},
+		reload: function (target, room, user) {
+			if (!this.can('hotpatch')) return false;
+			updateIcons();
+			this.privateModCommand("(" + user.name + " has reloaded icons.)");
+		},
 		'': function (target, room, user) {
 			return this.parse("/help icon");
 		},
@@ -78,5 +83,6 @@ exports.commands = {
 		"Commands Include:",
 		"/icon set [user], [image url] - Gives [user] an icon of [image url]",
 		"/icon delete [user] - Deletes a user's icon",
+		"/icon reload - Reloads icons.",
 	],
 };

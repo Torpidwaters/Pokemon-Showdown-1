@@ -84,12 +84,20 @@ exports.commands = {
 			if (!target[1]) return this.parse('/help customcolor');
 			return this.sendReplyBox('<b><font size="3" color="' + target[1] + '">' + Tools.escapeHTML(target[0]) + '</font></b>');
 		},
+		reload: function (target, room, user) {
+			if (!this.can('hotpatch')) return false;
+			updateColor();
+			this.privateModCommand("(" + user.name + " has reloaded custom colours.)");
+		},
 		'': function (target, room, user) {
 			return this.parse("/help customcolor");
 		},
 	},
-	customcolorhelp: ["Commands Include:",
-				"/customcolor set [user], [hex] - Gives [user] a custom color of [hex]",
-				"/customcolor delete [user], delete - Deletes a user's custom color",
-				"/customcolor preview [user], [hex] - Previews what that username looks like with [hex] as the color."],
+	customcolorhelp: [
+		"Commands Include:",
+		"/customcolor set [user], [hex] - Gives [user] a custom color of [hex]",
+		"/customcolor delete [user], delete - Deletes a user's custom color",
+		"/customcolor reload - Reloads colours.",
+		"/customcolor preview [user], [hex] - Previews what that username looks like with [hex] as the color.",
+	],
 };
