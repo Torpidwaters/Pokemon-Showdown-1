@@ -16,6 +16,7 @@ let packs = {};
 
 let managers = [];
 let shopPacks = [];
+let claimPacks = [];
 if (!Users.userPacks) Users.userPacks = [];
 
 
@@ -25,8 +26,8 @@ try {
 try {
 	shop = JSON.parse(fs.readFileSync('./config/psgo/shop.json', 'utf8'));
 	for (let i in shop) {
-		if (shop[i].price !== 10) continue;
-		shopPacks.push(i);
+		shopPacks.push(shop[i].name);
+		if (shop[i].price === 10) claimPacks.push(shop[i].name);
 	}
 } catch (e) {}
 try {
@@ -188,9 +189,9 @@ function claimPackPopup(user, message) {
 	output += '<small>(note: you can use /claimpacks to return to this popup)</small><br />';
 	output += '<table border="0" cellpadding="3" cellspacing="0">';
 	let count = 0;
-	for (let u in shopPacks) {
+	for (let u in claimPacks) {
 		if (count === 0) output += '<tr>';
-		output += '<td><button name="send" value="/' + cmd + ' ' + toId(shopPacks[u]) + '">' + Tools.escapeHTML(shopPacks[u]) + '</button></td>';
+		output += '<td><button name="send" value="/' + cmd + ' ' + toId(shopPacks[u]) + '">' + Tools.escapeHTML(claimPacks[u]) + '</button></td>';
 		count++;
 		if (count >= 5) {
 			output += '</tr>';
@@ -204,9 +205,10 @@ Wisp.claimPackPopup = claimPackPopup;
 function saveShop() {
 	fs.writeFileSync('./config/psgo/shop.json', JSON.stringify(shop));
 	shopPacks = [];
+	claimPacks = [];
 	for (let i in shop) {
-		if (shop[i].price !== 10) continue;
-		shopPacks.push(i);
+		shopPacks.push(shop[i].name);
+		if (shop[i].price === 10) claimPacks.push(shop[i].name);
 	}
 }
 
@@ -253,9 +255,9 @@ exports.commands = {
 		if (!target) return this.parse("/help claimpack");
 		if (!user.claimPacks || user.claimPacks < 1) return user.popup("You need to purchase a ticket before you can claim packs.");
 		if (user.lastClaimCmd && user.lastClaimCmd === cmd) return;
-		let cspacks = [];
-		for (let i in shop) cspacks.push(toId(i));
-		if (!cspacks.includes(toId(target))) return user.popup("That's not a valid pack to claim.");
+		let claimPackIds = [];
+		for (let i in claimPacks) claimPackIds.push(toId(claimPacks[i]));
+		if (!claimPackIds.includes(toId(target))) return user.popup("That's not a valid pack to claim.");
 
 		user.lastClaimCmd = cmd;
 		user.claimPacks--;
@@ -885,7 +887,7 @@ exports.commands = {
 		const letters = "abcdefghijklmnopqrstuvwxyz".split("");
 		const categories = {
 			Rarity: ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'], // rarities
-			Packs: shopPacks,
+			Packs: Tools.escapeHTML(shopPacks.join(', ')).split(', '),
 			Types: ['Water', 'Fire', 'Fighting', 'Fairy', 'Dragon', 'Colorless', 'Psychic', 'Lightning', 'Darkness', 'Grass', 'Metal'],
 			Tiers: ['OU-Pack', 'UU-Pack', 'Uber-Pack', 'PU-Pack', 'NU-Pack', 'RU-Pack', 'LC-Pack', 'BL-Pack', 'BL2-Pack', 'BL3-Pack'],
 			Generation: ['Gen1', 'Gen2', 'Gen3', 'Gen4', 'Gen5', 'Gen6'],
