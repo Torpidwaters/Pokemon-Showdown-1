@@ -254,7 +254,7 @@ exports.commands = {
 		if (!user.claimPacks || user.claimPacks < 1) return user.popup("You need to purchase a ticket before you can claim packs.");
 		if (user.lastClaimCmd && user.lastClaimCmd === cmd) return;
 		let cspacks = [];
-		for (let i in shop) cspacks.push(toId(i));
+		for (let i in shopPacks) cspacks.push(toId(i));
 		if (!cspacks.includes(toId(target))) return user.popup("That's not a valid pack to claim.");
 
 		user.lastClaimCmd = cmd;
