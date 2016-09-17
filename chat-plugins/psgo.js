@@ -814,7 +814,7 @@ exports.commands = {
 		let output = '<div class="card-div card-td" style="box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.2);">' +
 			'<img src="' + card.image + '" height="220" title="' + Tools.escapeHTML(card.name) + '" align="right">' +
 			'<h1>' + Tools.escapeHTML(card.name) + '</h1>' +
-			'<br /><br /><h1><font color="' + colors[card.rarity] + '">' + Tools.escapeHTML(card.rarity) + '</font></h1>' +
+			'<br /><br /><h1><font color="' + colors[toId(card.rarity)] + '">' + Tools.escapeHTML(card.rarity) + '</font></h1>' +
 			'<br /><br /><font color="#AAA"><i>Points:</i></font> ' + card.points +
 			'<br /><br /><font color="#AAA"><i>Card ID:</i></font> ' + card.id +
 			'<br /><br /><font color="#AAA"><i>Found in Packs:</i></font> ' + Tools.escapeHTML(collections.join(', ')) +
