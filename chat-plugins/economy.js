@@ -182,6 +182,7 @@ exports.commands = {
 		user.popup("|wide|" + output);
 	},
 
+	'!wallet': true,
 	atm: 'wallet',
 	wallet: function (target, room, user) {
 		if (!target) target = user.name;
@@ -726,6 +727,7 @@ exports.commands = {
 		}
 	},
 
+	'!bucks': true,
 	bucks: function (target, room, user) {
 		if (!this.runBroadcast()) return;
 
@@ -757,6 +759,7 @@ exports.commands = {
 		});
 	},
 
+	'!richestuser': true,
 	richestusers: 'richestuser',
 	richestuser: function (target, room, user) {
 		if (!target) target = 10;

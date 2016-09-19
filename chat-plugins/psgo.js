@@ -615,6 +615,7 @@ exports.commands = {
 		return this.sendReply('|raw|<div class="infobox" style="max-height: 310px; overflow-y: scroll;">' + getShopDisplay(shop) + '</div>');
 	},
 
+	'!openpack': true,
 	openpacks: 'openpack',
 	openpack: function (target, room, user) {
 		if (!this.runBroadcast()) return;
@@ -803,6 +804,7 @@ exports.commands = {
 		});
 	},
 
+	'!card': true,
 	card: function (target, room, user) {
 		if (!target) return this.parse("/help card");
 		if (!this.runBroadcast()) return;
@@ -813,14 +815,21 @@ exports.commands = {
 		for (let u in card.collection) {
 			if (packs[toId(card.collection[u])]) collections.push(packs[toId(card.collection[u])]);
 		}
-		let output = '<div class="card-div card-td" style="box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.2);">' +
-			'<img src="' + card.image + '" height="220" title="' + Tools.escapeHTML(card.name) + '" align="right">' +
-			'<h1>' + Tools.escapeHTML(card.name) + '</h1>' +
-			'<br /><br /><h1><font color="' + colors[toId(card.rarity)] + '">' + Tools.escapeHTML(card.rarity) + '</font></h1>' +
-			'<br /><br /><font color="#AAA"><i>Points:</i></font> ' + card.points +
-			'<br /><br /><font color="#AAA"><i>Card ID:</i></font> ' + card.id +
-			'<br /><br /><font color="#AAA"><i>Found in Packs:</i></font> ' + Tools.escapeHTML(collections.join(', ')) +
-			'<br clear="all">';
+		let output = '';
+		output += '<div class="' + (this.targetUser ? 'infobox"' : 'card-div card-td" style="box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.2);') + '">';
+		if (!this.targetUser) {
+			output += '<img src="' + card.image + '" height="220" title="' + Tools.escapeHTML(card.name) + '" align="right">';
+			output += '<h1>' + Tools.escapeHTML(card.name) + '</h1>';
+			output += '<br /><br /><h1><font color="' + colors[toId(card.rarity)] + '">' + Tools.escapeHTML(card.rarity) + '</font></h1>';
+		} else {
+			output += '<img src="' + card.image + '" width="108" height="150" title="' + Tools.escapeHTML(card.name) + '" align="right">';
+			output += '<br /><br /><font color="#AAA"><i>Name:</i></font> ' + Tools.escapeHTML(card.name);
+			output += '<br /><br /><font color="#AAA"><i>Rarity:</i></font> <font color="' + colors[toId(card.rarity)] + '">' + Tools.escapeHTML(card.rarity) + '</font>';
+		}
+		output += '<br /><br /><font color="#AAA"><i>Points:</i></font> ' + card.points;
+		output += '<br /><br /><font color="#AAA"><i>Card ID:</i></font> ' + card.id;
+		output += '<br /><br /><font color="#AAA"><i>Found in Packs:</i></font> ' + Tools.escapeHTML(collections.join(', '));
+		output += '<br clear="all">';
 		this.sendReply('|raw|' + output);
 	},
 	cardhelp: ["/card [name] - Displays information about a card."],
@@ -839,6 +848,7 @@ exports.commands = {
 		});
 	},
 
+	'!cardladder': true,
 	cardladder: function (target, room, user) {
 		if (!this.runBroadcast()) return;
 		database.all("SELECT * FROM cardladder ORDER BY points DESC LIMIT 100", (err, rows) => {

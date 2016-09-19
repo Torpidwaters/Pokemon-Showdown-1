@@ -205,6 +205,7 @@ function parseStatus(text, encoding) {
 }
 
 exports.commands = {
+	'!seen': true,
 	lastseen: 'seen',
 	seen: function (target, room, user) {
 		if (!target) return this.errorReply("Usage: /seen [username] - Show's the last time the user was online.");
@@ -234,6 +235,7 @@ exports.commands = {
 		}
 	},
 
+	'!regdate': true,
 	regdate: function (target, room, user, connection) {
 		if (toId(target).length < 1 || toId(target).length > 19) return this.sendReply("Usernames may not be less than one character or longer than 19");
 		if (!this.runBroadcast()) return;
@@ -279,6 +281,7 @@ exports.commands = {
 	},
 	tellhelp: ['/tell [user], [message] - Leaves a message for an offline user for them to see when they log on next.'],
 
+	'!define': true,
 	def: 'define',
 	define: function (target, room, user) {
 		if (!target) return this.sendReply('Usage: /define <word>');
@@ -323,6 +326,7 @@ exports.commands = {
 		});
 	},
 
+	'!urbandefine': true,
 	u: 'urbandefine',
 	ud: 'urbandefine',
 	urbandefine: function (target, room, user) {
@@ -647,11 +651,13 @@ exports.commands = {
 		}
 	},
 
+	'!hex': true,
 	hex: function (target, room, user) {
 		if (!this.runBroadcast()) return;
 		let targetUser = (target ? target : user.name);
 		this.sendReplyBox('The hex code of ' + Wisp.nameColor(targetUser, true) + ' is: <font color="' + Wisp.hashColor(targetUser) + '"><b>' + Wisp.hashColor(targetUser) + '</b></font>');
 	},
+
 	anime: function (target, room, user) {
 		if (!this.runBroadcast()) return;
 		if (!target) return this.errorReply("No target.");
