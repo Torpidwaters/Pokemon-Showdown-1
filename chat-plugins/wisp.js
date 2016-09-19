@@ -989,7 +989,7 @@ exports.commands = {
 		});
 
 		rooms.sort(function (a, b) {
-			if (!Rooms(a) || !Rooms(b)) return;
+			if (!Rooms(a) || !Rooms(b)) return false;
 			return Number(Rooms(b).userCount) - Number(Rooms(a).userCount);
 		});
 
