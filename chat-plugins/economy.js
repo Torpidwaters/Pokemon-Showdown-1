@@ -869,7 +869,7 @@ exports.commands = {
 			reply += '<font color="#B30000"><b>Rank:</b></font> ' + Tools.escapeHTML(userGroup) + '<br />';
 			reply += '<font color="#B30000"><b>League:</b></font> ' + (league ? league + (leagueRank ? ' (' + leagueRank + ')' : '') : 'N/A') + '<br />';
 			reply += '<font color="#B30000"><b>Bucks:</b></font> ' + userData.bucks + '<br />';
-			reply += '<font color="#B30000"><b>Last Online:</b></font> ' + (targetUser && targetUser.connected ? '<font color="green">Currently Online</font> (Last Active: ' + moment(targetUser.lastActive).fromNow() + ')' : moment(userData.lastOnline).format("MMMM Do YYYY, h:mm:ss A") + ' EST. (' + moment(userData.lastOnline).fromNow() + ')') + '<br />';
+			reply += '<font color="#B30000"><b>Last Online:</b></font> ' + (targetUser && targetUser.connected ? '<font color="green">Currently Online</font> (Last Active: ' + moment(targetUser.lastActive).fromNow() + ')' : (userData.lastOnline === 'Never' ? userData.lastOnline : moment(userData.lastOnline).format("MMMM Do YYYY, h:mm:ss A") + ' EST. (' + moment(userData.lastOnline).fromNow() + ')')) + '<br />';
 
 			reply += '</td><td><div class="card-button" style="background: rgba(255, 255, 255, 0.8); text-align: center; border-radius: 12px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2) inset; margin: 2px 2px 2px 0px">' + badges() + '</div></td>';
 			reply += '</tr>';
