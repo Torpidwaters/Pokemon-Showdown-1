@@ -989,12 +989,13 @@ exports.commands = {
 		});
 
 		rooms.sort(function (a, b) {
-			return a - b;
+			if (!Rooms(a) || !Rooms(b)) return;
+			return Number(Rooms(b).userCount) - Number(Rooms(a).userCount);
 		});
 
 		for (let u in rooms) {
 			let curRoom = Rooms(rooms[u]);
-			if (!curRoom || u === 'global') continue;
+			if (!curRoom || rooms[u] === 'global') continue;
 			if (curRoom.type === 'battle') {
 				battleRooms.push('<a href="/' + curRoom.id + '" class="ilink">' + Tools.escapeHTML(curRoom.title) + '</a> (' + curRoom.userCount + ')');
 			}
