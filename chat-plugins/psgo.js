@@ -881,7 +881,7 @@ exports.commands = {
 		});
 	},
 
-	cs: 'cardsearch',
+	cs: 'searchcard',
 	cardsearch: 'searchcard',
 	searchcard: function (target, room, user) {
 		const letters = "abcdefghijklmnopqrstuvwxyz".split("");
