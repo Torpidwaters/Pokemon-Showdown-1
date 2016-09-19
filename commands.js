@@ -2166,23 +2166,23 @@ exports.commands = {
 		}
 		if (target.length > MAX_REASON_LENGTH) {
 			return this.errorReply("The reason is too long. It cannot exceed " + MAX_REASON_LENGTH + " characters.");
-					}
+		}
 		if (!target) {
 			return this.errorReply("Blacklists require a reason.");
-				}
+		}
 		const name = targetUser.getLastName();
 		const userid = targetUser.getLastId();
 
 		if (targetUser.confirmed && room.isPrivate !== true) {
 			Monitor.log("[CrisisMonitor] Confirmed user " + targetUser.name + (targetUser.confirmed !== targetUser.userid ? " (" + targetUser.confirmed + ")" : "") + " was blacklisted from " + room.id + " by " + user.name + ", and should probably be demoted.");
-				}
+		}
 
 		if (targetUser in room.users || user.can('lock')) {
 			targetUser.popup(
 				"|modal||html|<p>" + Tools.escapeHTML(user.name) + " has blacklisted you from the room " + room.id + ".</p>" + (target ? "<p>Reason: " + Tools.escapeHTML(target) + "</p>" : "") +
 				"<p>To appeal the ban, PM the staff member that blacklisted you" + (!room.battle && room.auth ? " or a room owner. </p><p><button name=\"send\" value=\"/roomauth " + room.id + "\">List Room Staff</button></p>" : ".</p>")
 			);
-			}
+		}
 
 		this.addModCommand("" + name + " was blacklisted by " + user.name + "." + (target ? " (" + target + ")" : ""), " (" + targetUser.latestIp + ")");
 		if (!room.isPrivate && room.chatRoomData) {
@@ -2193,16 +2193,16 @@ exports.commands = {
 			} else if (acAccount) {
 				this.privateModCommand("(" + name + "'s ac account: " + acAccount + ")");
 			}
-			}
+		}
 		this.add('|unlink|hide|' + userid);
 		if (userid !== toId(this.inputUsername)) this.add('|unlink|hide|' + toId(this.inputUsername));
 
 		if (!room.isPrivate && room.chatRoomData) {
 			this.globalModlog("BLACKLIST", targetUser, " by " + user.name + (target ? ": " + target : ""));
-			}
+		}
 		Punishments.roomBlacklist(room, targetUser, null, null, target);
 		return true;
-		},
+	},
 	blacklisthelp: ["/blacklist [username], [reason] - Blacklists the user from the room you are in for a year. Requires: # & ~"],
 
 	unab: 'unblacklist',
@@ -2233,7 +2233,7 @@ exports.commands = {
 		const subMap = Punishments.roomUserids.get(room.id);
 		if (!subMap) {
 			return this.sendReply("This room has no blacklisted users.");
-			}
+		}
 		let blMap = new Map();
 		let ips = '';
 
@@ -2255,7 +2255,7 @@ exports.commands = {
 					blMap.get(id).push(ip);
 				}
 			});
-			}
+		}
 
 		let buf = `Blacklist for room ${room.id}:<br />`;
 
