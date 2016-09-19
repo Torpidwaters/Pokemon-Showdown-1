@@ -623,34 +623,6 @@ exports.commands = {
 	},
 	unlinkhelp: ["/unlink [user] - Breaks a user's posted links."],
 
-	clearmessages: 'hidetext',
-	clearmsg: 'hidetext',
-	hidetext: function (target, room, user) {
-		if (!target) return this.parse('/help hidetext');
-		this.splitTarget(target);
-		let targetUser = this.targetUser;
-		let name = this.targetUsername;
-		if (!targetUser) return this.errorReply("User '" + name + "' not found.");
-		let userid = targetUser.getLastId();
-		let hidetype = '';
-		if (!user.can('lock', targetUser) && !user.can('ban', targetUser, room)) {
-			this.errorReply("/hidetext - Access denied.");
-			return false;
-		}
-		if ((targetUser.locked || Punishments.useridSearch(userid)) && user.can('lock', targetUser)) {
-			hidetype = 'hide|';
-		} else {
-			hidetype = 'roomhide|';
-		}
-		this.addModCommand("" + targetUser.name + "'s messages were cleared from room " + room.id + " by " + user.name + ".");
-		this.add('|unlink|' + hidetype + userid);
-		this.add('|uhtmlchange|' + userid + '|');
-		if (userid !== toId(this.inputUsername)) {
-			this.add('|unlink|' + hidetype + toId(this.inputUsername));
-			this.add('|uhtmlchange|' + toId(this.inputUsername) + '|');
-		}
-	},
-
 	'!hex': true,
 	hex: function (target, room, user) {
 		if (!this.runBroadcast()) return;
