@@ -86,10 +86,23 @@ exports.commands = {
 			this.sendReply("The badge with the name '" + selectedBadge + "' deleted.");
 			this.logModCommand(user.name + " removed the badge '" + selectedBadge + ".");
 			break;
+		case 'transfer':
+			if (!this.can('ban')) return false;
+			if (parts.length !== 3) return this.errorReply("Correct command: `/badges transfer, userfrom, userto`");
+			let userFrom = toId(parts[1].trim());
+			let userTo = toId(parts[2].trim());
+			if (!Db('userBadges').has(userFrom)) return this.errorReply("This user doesn't have any badges.");
+			let userToBadges = Db('userBadges').get(userFrom);
+			Db('userBadges').set(toId(userFrom), []);
+			Db('userBadges').set(toId(userTo), userToBadges);
+
+			this.logModCommand(user.name + " transfered " + userFrom + "'s badges to " + userTo + ".");
+			this.sendReply("All badges were taken from '" + userFrom + "' and given to " + userTo + ".");
+			break;
 		default:
-			return this.errorReply("Invalid command. Valid commands are `/badges list`, `/badges info, badgeName`, `/badges set, user, badgeName` and `/badges take, user, badgeName`" +
-			 "`/badges create, name, description, img`.");
+			return this.errorReply("Invalid command. Valid commands are `/badges list`, `/badges info, badgeName`, `/badges set, user, badgeName`, `/badges take, user, badgeName`" +
+			 "`/badges transfer, userFrom, userTo`, `/badges create, name, description, img`, and `/badges delete, badgeName`.");
 		}
 	},
-	badgeshelp: ["Valid commands are `/badges list`, `/badges info, badgeName`, `/badges set, user, badgeName` and `/badges take, user, badgeName`."],
+	badgeshelp: ["Valid commands are `/badges list`, `/badges info, badgeName`, `/badges set, user, badgeName`, `/badges take, user, badgeName`, `/badges transfer, userFrom, userTo`, `/badges create, name, description, img`, and `/badges delete, badgeName`."],
 };
