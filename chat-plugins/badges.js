@@ -100,7 +100,7 @@ exports.commands = {
 			this.sendReply("All badges were taken from '" + userFrom + "' and given to " + userTo + ".");
 			break;
 		default:
-			return this.errorReply("Invalid command. Valid commands are `/badges list`, `/badges info, badgeName`, `/badges set, user, badgeName`, `/badges take, user, badgeName`" +
+			return this.errorReply("Invalid command. Valid commands are `/badges list`, `/badges info, badgeName`, `/badges set, user, badgeName`, `/badges take, user, badgeName`, " +
 			 "`/badges transfer, userFrom, userTo`, `/badges create, name, description, img`, and `/badges delete, badgeName`.");
 		}
 	},
