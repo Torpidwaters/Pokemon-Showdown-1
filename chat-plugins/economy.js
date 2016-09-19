@@ -1,7 +1,7 @@
 'use strict';
 
 Wisp.database = new sqlite3.Database('config/users.db', function () {
-	Wisp.database.run("CREATE TABLE if not exists users (userid TEXT, name TEXT, bucks INTEGER, lastSeen INTEGER, onlineTime INTEGER, credits INTEGER, title TEXT, notifystatus INTEGER, background TEXT)");
+	Wisp.database.run("CREATE TABLE if not exists users (userid TEXT, name TEXT, bucks INTEGER, lastSeen INTEGER, onlineTime INTEGER, credits INTEGER, title TEXT, notifystatus INTEGER, background TEXT, music TEXT)");
 	Wisp.database.run("CREATE TABLE if not exists friends (id integer primary key, userid TEXT, friend TEXT)");
 });
 
@@ -25,6 +25,7 @@ let prices = {
 	"poof": 25,
 	"title": 30,
 	"avatar": 35,
+	"music": 35,
 	"infobox": 40,
 	"background": 40,
 	"emote": 50,
@@ -89,6 +90,34 @@ let Economy = global.Economy = {
 		fs.appendFile('logs/dice.log', '[' + new Date().toUTCString() + '] ' + message + '\n');
 	},
 };
+
+function getProfileData(user, callback) {
+	let userid = toId(user);
+	let reply = {
+		bucks: 0,
+		regdate: "(Unregistered)",
+		lastOnline: "Never",
+		title: "",
+		background: "",
+		music: "",
+	};
+	Wisp.database.all("SELECT * FROM users WHERE userid=$userid;", {$userid: userid}, function (err, rows) {
+		if (err) return console.log("getProfileData 1: " + err);
+		Wisp.regdate(userid, function (date) {
+			if (date) reply.regdate = moment(date).format("MMMM DD, YYYY");
+			if (!rows[0]) return callback(reply);
+
+			let userData = rows[0];
+			if (userData.bucks) reply.bucks = userData.bucks;
+			if (userData.lastSeen) reply.lastOnline = userData.lastSeen;
+			if (userData.title) reply.title = userData.title;
+			if (userData.background) reply.background = userData.background;
+			if (userData.music) reply.music = userData.music;
+
+			return callback(reply);
+		});
+	});
+}
 
 if (!Rooms.global.lotteryDraw) {
 	Rooms.global.lotteryDraw = schedule.scheduleJob('0 18 * * 0,3', function () {
@@ -456,6 +485,20 @@ exports.commands = {
 				});
 				matched = true;
 				break;
+			case 'music':
+				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase a profile background.");
+				if (!targetSplit[1]) return this.sendReply("Please specify the song you would like with /buy music, [song link]");
+				Economy.writeMoney(user.userid, prices[itemid] * -1, () => {
+					Economy.readMoney(user.userid, amount => {
+						Economy.logTransaction(user.userid + " has purchased profile music for " + prices[itemid] + " bucks. Music URL: " + targetSplit[1]);
+						Wisp.messageSeniorStaff("/html " + Wisp.nameColor(user.name, true) + " has purchased profile music: <a href=\"" + Tools.escapeHTML(targetSplit[1]) + "\">" + Tools.escapeHTML(targetSplit[1]) +
+						"</a><br /><button name=\"send\" value=\"/music set " + user.userid + ", " + targetSplit[1] + "\">Click to add</button>");
+						Rooms('upperstaff').add("|raw|" + Wisp.nameColor(user.name, true) + " has purchased profile music: " + Tools.escapeHTML(targetSplit[1])).update();
+						this.sendReply("You have purchased profile music. It will be added shortly.");
+					});
+				});
+				matched = true;
+				break;
 			case 'icon':
 				if (userMoney < prices[itemid]) return this.sendReply("You need " + (prices[itemid] - userMoney) + " more bucks to purchase an icon.");
 				if (!targetSplit[1]) return this.sendReply("Please specify the image you would like as your icon with /buy icon, image url.");
@@ -533,6 +576,7 @@ exports.commands = {
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy poof">Poof</button></td><td class="shop-td des">Buy a poof message to be added into the pool of possible poofs</td><td class="shop-td pri">' + prices['poof'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy title">Title</button></td><td class="shop-td des">Buys a user title that displays beside your name in /profile</td><td class="shop-td pri">' + prices['title'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy avatar">Avatar</button></td><td class="shop-td des">Buys a custom avatar to be applied to your name (You supply, must be .png or .gif format. Images larger than 80x80 may not show correctly.)</td><td class="shop-td pri">' + prices['avatar'] + '</td></tr>' +
+			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy music">Profile Music</button></td><td class="shop-td des">Buys custom music for your /profile</td><td class="shop-td pri">' + prices['music'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy infobox">Infobox</button></td><td class="shop-td des">Buys an infobox that will be viewable with a command such as /tailz.</td><td class="shop-td pri">' + prices['infobox'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy background">Background</button></td><td class="shop-td des">Buys a custom background for your /profile</td><td class="shop-td pri">' + prices['background'] + '</td></tr>' +
 			'<tr class="shop-tr"><td class="shop-td"><button name="send" value="/buy emote">Emote</button></td><td class="shop-td des">Buys an emoticon for you (and everyone else) to use in the chat.</td><td class="shop-td pri">' + prices['emote'] + '</td></tr>' +
@@ -772,17 +816,20 @@ exports.commands = {
 
 	profile: function (target, room, user) {
 		if (!target) target = user.name;
-		if (toId(target) === 'constructor') return this.errorReply("lol jd can't code");
 		if (toId(target).length > 19) return this.sendReply("Usernames may not be more than 19 characters long.");
-		if (toId(target).length < 1) return this.sendReply(target + " is not a valid username.");
+		if (toId(target).length < 1 || toId(target) === 'constructor') return this.sendReply(target + " is not a valid username.");
 		if (!this.runBroadcast()) return;
-		let targetUser = Users.get(target);
+
+		let targetUser = Users.getExact(target);
 		let username = (targetUser ? targetUser.name : target);
 		let userid = toId(username);
-		let avatar = (Config.customavatars[userid] ? "http://" + serverIp + ":" + Config.port + "/avatars/" + Config.customavatars[userid] : "http://play.pokemonshowdown.com/sprites/trainers/167.png");
+
+		let customAvatarUrl = "http://" + serverIp + ":" + Config.port + "/avatars/";
+		let avatar = (Config.customavatars[userid] ? customAvatarUrl + Config.customavatars[userid] : "http://play.pokemonshowdown.com/sprites/trainers/167.png");
 		if (targetUser) {
-			avatar = (isNaN(targetUser.avatar) && targetUser.avatar[0] !== '#' ? "http://" + serverIp + ":" + Config.port + "/avatars/" + targetUser.avatar : "http://play.pokemonshowdown.com/sprites/trainers/" + toId(targetUser.avatar) + ".png");
+			avatar = (isNaN(targetUser.avatar) && targetUser.avatar[0] !== '#' ? customAvatarUrl + targetUser.avatar : "http://play.pokemonshowdown.com/sprites/trainers/" + toId(targetUser.avatar) + ".png");
 		}
+
 		let badges = () => {
 			let badges = Db('userBadges').get(userid);
 			let css = 'border:none;background:none;padding:0;';
@@ -801,49 +848,53 @@ exports.commands = {
 
 		let userSymbol = (Users.usergroups[userid] ? Users.usergroups[userid].substr(0, 1) : "Regular User");
 		let userGroup = (Config.groups[userSymbol] ? Config.groups[userSymbol].name : "Regular User");
-		let regdate = "(Unregistered)";
-		let friendCode = Db('friendcodes').has(userid) ? Db('friendcodes').get(userid) : false;
-		let flag = ' ';
+		let flag = '';
 		if (targetUser) {
 			let country = geoip.lookupCountry(targetUser.latestIp);
 			if (country) flag = ' <img title = "' + country + '" src = "http://' + serverIp + ':' + Config.port + '/flags/' + country.toLowerCase() + '.gif">';
 		}
 
-		Economy.readMoney(userid, bucks => {
-			Wisp.regdate(userid, date => {
-				if (date) regdate = regdate = moment(date).format("MMMM DD, YYYY");
-				Wisp.lastSeen(userid, online => {
-					Wisp.getTitle(userid, title => {
-						Wisp.getBackground(userid, background => {
-							showProfile(bucks, regdate, online, title, background);
-						});
-					});
-				});
-			});
 
-			let league = Wisp.getLeague(userid);
-			let leagueRank = Wisp.getLeagueRank(userid);
+		let league = Wisp.getLeague(userid);
+		let leagueRank = Wisp.getLeagueRank(userid);
 
-			let self = this;
-			function showProfile(bucks, regdate, lastOnline, title, background) {
-				lastOnline = (lastOnline ? moment(lastOnline).format("MMMM Do YYYY, h:mm:ss A") + ' EST. (' + moment(lastOnline).fromNow() + ')' : "Never");
-				if (targetUser && targetUser.connected && targetUser.lastActive) lastOnline = moment(targetUser.lastActive).fromNow();
-				let profile = '|raw|';
-				profile += '<div class="infobox"' + ((background && background !== '') ? ' style="background: url&quot;' + Tools.escapeHTML(background) + '&quot;); background-size: contain;">' : '>');
-				profile += '<div style="float: left; width: 500px; background: rgba(255, 255, 255, 0.8); border-radius: 25px; padding: 10px;"> <img src="' + avatar + '" height=80 width=80 align=left>';
-				profile += '&nbsp;<font color=#b30000><b>Name: </font>' + Wisp.nameColor(userid, true) + (title === "" ? "" : " (" + title + ")") + flag + '<br />';
-				profile += '&nbsp;<font color=#b30000><b>Registered: </font></b>' + regdate + '<br />';
-				profile += '&nbsp;<font color=#b30000><b>Rank: </font></b>' + userGroup + (Users.vips[userid] ? ' (<font color=#6390F0><b>VIP User</b></font>)' : '') + '<br />';
-				if (league) profile += '&nbsp;<font color=#b30000><b>League: </font></b>' + league + (leagueRank ? ' (' + leagueRank + ')' : '') + '<br />';
-				if (bucks) profile += '&nbsp;<font color=#b30000><b>Bucks: </font></b>' + bucks + '<br />';
-				if (friendCode) profile += '&nbsp;<font color=#b30000><b>Friendcode: </font></b>' + friendCode + '<br />';
-				profile += '&nbsp;<font color=#b30000><b>Last ' + (targetUser && targetUser.connected ? 'Active' : 'Online') + ': </font></b> ' + lastOnline;
-				profile += '</div><div style="position: relative; left: 50px; background: rgba(255, 255, 255, 0.8);float: left; text-align: center; border-radius: 12px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2) inset; margin: 2px 2px 2px 0px" class="card-button">' + badges() + '</div>';
-				profile += '<br clear="all">';
-				profile += '</div>';
-				self.sendReply(profile);
-				room.update();
-			}
+		getProfileData(userid, userData => {
+			let reply = '';
+			reply += '|raw|<div class="infobox"' + (userData.background === '' ? '' : ' style="background: url(&quot;' + Tools.escapeHTML(userData.background) + '&quot;); background-size: contain;"') + '>';
+			reply += '<table' + (userData.background === '' ? '' : '') + '><tr>';
+
+			reply += '<td' + (userData.background === '' ? '' : ' style="background-color: rgba(255, 255, 255, 0.8); border-radius: 25px; padding: 10px;"') + '><img src="' + avatar + '" height="80" width="80"></td>';
+			reply += '<td' + (userData.background === '' ? '' : ' style="background-color: rgba(255, 255, 255, 0.8); border-radius: 25px; padding: 10px;"') + '><font color="#B30000"><b>Name:</b></font> ' + Wisp.nameColor(userid, true) + (userData.title === "" ? '' : ' (' + userData.title + ')') + flag + '<br />';
+			reply += '<font color="#B30000"><b>Registered:</b></font> ' + userData.regdate + '<br />';
+			reply += '<font color="#B30000"><b>Rank:</b></font> ' + Tools.escapeHTML(userGroup) + '<br />';
+			reply += '<font color="#B30000"><b>League:</b></font> ' + (league ? league + (leagueRank ? ' (' + leagueRank + ')' : '') : 'N/A') + '<br />';
+			reply += '<font color="#B30000"><b>Bucks:</b></font> ' + userData.bucks + '<br />';
+			reply += '<font color="#B30000"><b>Last Online:</b></font> ' + (targetUser && targetUser.connected ? '<font color="green">Currently Online</font> (Last Active: ' + moment(targetUser.lastActive).fromNow() + ')' : moment(userData.lastOnline).format("MMMM Do YYYY, h:mm:ss A") + ' EST. (' + moment(userData.lastOnline).fromNow() + ')') + '<br />';
+
+			reply += '</td><td><div class="card-button" style="background: rgba(255, 255, 255, 0.8); text-align: center; border-radius: 12px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2) inset; margin: 2px 2px 2px 0px">' + badges() + '</div></td>';
+			reply += '</tr>';
+			if (userData.music !== "") reply += '<tr><td colspan="2"><audio style="width: 100%;"src="' + Tools.escapeHTML(userData.music) + '" controls=""></audio></td></tr>';
+			reply += '</table></div>';
+
+			//reply += '<div style="position: relative; left: 50px; background: rgba(255, 255, 255, 0.8);float: left; text-align: center; border-radius: 12px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2) inset; margin: 2px 2px 2px 0px" class="card-button">' + badges() + '</div><br clear="all"/></div>';
+
+			/*lastOnline = (lastOnline ? moment(lastOnline).format("MMMM Do YYYY, h:mm:ss A") + ' EST. (' + moment(lastOnline).fromNow() + ')' : "Never");
+			if (targetUser && targetUser.connected && targetUser.lastActive) lastOnline = moment(targetUser.lastActive).fromNow();
+			let profile = '|raw|';
+			profile += '<div class="infobox"' + ((background && background !== '') ? ' style="background: url&quot;' + Tools.escapeHTML(background) + '&quot;); background-size: contain;">' : '>');
+			profile += '<div style="float: left; width: 500px; background: rgba(255, 255, 255, 0.8); border-radius: 25px; padding: 10px;"> <img src="' + avatar + '" height=80 width=80 align=left>';
+			profile += '&nbsp;<font color=#b30000><b>Name: </font>' + Wisp.nameColor(userid, true) + (title === "" ? "" : " (" + title + ")") + flag + '<br />';
+			profile += '&nbsp;<font color=#b30000><b>Registered: </font></b>' + regdate + '<br />';
+			profile += '&nbsp;<font color=#b30000><b>Rank: </font></b>' + userGroup + (Users.vips[userid] ? ' (<font color=#6390F0><b>VIP User</b></font>)' : '') + '<br />';
+			if (league) profile += '&nbsp;<font color=#b30000><b>League: </font></b>' + league + (leagueRank ? ' (' + leagueRank + ')' : '') + '<br />';
+			if (bucks) profile += '&nbsp;<font color=#b30000><b>Bucks: </font></b>' + bucks + '<br />';
+			if (friendCode) profile += '&nbsp;<font color=#b30000><b>Friendcode: </font></b>' + friendCode + '<br />';
+			profile += '&nbsp;<font color=#b30000><b>Last ' + (targetUser && targetUser.connected ? 'Active' : 'Online') + ': </font></b> ' + lastOnline;
+			profile += '</div><div style="position: relative; left: 50px; background: rgba(255, 255, 255, 0.8);float: left; text-align: center; border-radius: 12px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2) inset; margin: 2px 2px 2px 0px" class="card-button">' + badges() + '</div>';
+			profile += '<br clear="all">';
+			profile += '</div>';*/
+			this.sendReply(reply);
+			room.update();
 		});
 	},
 
