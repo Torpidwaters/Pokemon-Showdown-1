@@ -29,7 +29,7 @@ class RoomSettings {
 		this.generateDisplay();
 	}
 	modchat() {
-		if (!this.user.can('modchat', null, this.room)) return "<button " + DISABLED + ">" + (this.room.modchat ? this.room.modchat : false) + "</button>";
+		if (!this.user.can('modchat', null, this.room)) return "<button " + DISABLED + ">" + (this.room.modchat ? this.room.modchat : 'off') + "</button>";
 		let modchatOutput = [];
 		for (let i = 0; i <= RANKS.length; i++) {
 			if (RANKS[i] === ' ' && !this.room.modchat) {
@@ -81,7 +81,7 @@ class RoomSettings {
 		}
 	}
 	capitals() {
-		if (!this.user.can('editroom', null, this.room)) return "<button " + DISABLED + ">" + (this.room.filterCaps ? this.room.filterCaps : false) + "</button>";
+		if (!this.user.can('editroom', null, this.room)) return "<button " + DISABLED + ">" + (this.room.filterCaps ? this.room.filterCaps : 'off') + "</button>";
 		if (this.room.filterCaps) {
 			return '<button name="send" value="/roomsetting capsfilter off">off</button> <button ' + DISABLED + '>filter capitals</button>';
 		} else {
@@ -200,6 +200,21 @@ exports.commands = {
 	},
 	modchathelp: ["/modchat [off/autoconfirmed/+/%/@/*/#/&/~] - Set the level of moderated chat. Requires: *, @ for off/autoconfirmed/+ options, # & ~ for all the options"],
 
+	ioo: function (target, room, user) {
+		return this.parse('/modjoin +');
+	},
+
+	inviteonly: function (target, room, user) {
+		if (!target) return this.parse('/help inviteonly');
+		if (target === 'on' || target === 'true' || target === 'yes') {
+			return this.parse('/modjoin +');
+		} else {
+			return this.parse('/modjoin ' + target);
+		}
+	},
+	inviteonlyhelp: ["/inviteonly [on|off] - Sets modjoin +. Users can't join unless invited with /invite. Requires: # & ~",
+		"/ioo - Shortcut for /inviteonly on"],
+
 	modjoin: function (target, room, user) {
 		if (!target) {
 			const modjoinSetting = room.modjoin === true ? "SYNC" : room.modjoin || "OFF";
@@ -214,6 +229,7 @@ exports.commands = {
 		if (target === 'off' || target === 'false') {
 			if (!room.modjoin) return this.errorReply(`Modjoin is already turned off in this room.`);
 			delete room.modjoin;
+			this.add(`|raw|<div class="broadcast-blue"><b>This room is no longer invite only!</b><br />Anyone may now join.</div>`);
 			this.addModCommand(`${user.name} turned off modjoin.`);
 			if (room.chatRoomData) {
 				delete room.chatRoomData.modjoin;
@@ -223,12 +239,18 @@ exports.commands = {
 		} else if (target === 'sync') {
 			if (room.modjoin === true) return this.errorReply(`Modjoin is already set to sync modchat in this room.`);
 			room.modjoin = true;
+			this.add(`|raw|<div class="broadcast-red"><b>Moderated join is set to sync with modchat!</b><br />Only users who can speak in modchat can join.</div>`);
 			this.addModCommand(`${user.name} set modjoin to sync with modchat.`);
 		} else if (target in Config.groups) {
-			if (room.battle && !this.can('makeroom')) return;
+			if (room.battle && !user.can('makeroom') && target !== '+') return this.errorReply(`/modjoin - Access denied from setting modjoin past + in battles.`);
 			if (room.isPersonal && !user.can('makeroom') && target !== '+') return this.errorReply(`/modjoin - Access denied from setting modjoin past + in group chats.`);
 			if (room.modjoin === target) return this.errorReply(`Modjoin is already set to ${target} in this room.`);
 			room.modjoin = target;
+			if (target === '+') {
+				this.add(`|raw|<div class="broadcast-red"><b>This room is now invite only!</b><br />Users must be rank + or invited with <code>/invite</code> to join</div>`);
+			} else {
+				this.add(`|raw|<div class="broadcast-red"><b>Moderated join was set to ${target}!</b><br />Only users of rank ${target} and higher can talk.</div>`);
+			}
 			this.addModCommand(`${user.name} set modjoin to ${target}.`);
 		} else {
 			this.errorReply(`Unrecognized modjoin setting.`);
@@ -239,7 +261,7 @@ exports.commands = {
 			room.chatRoomData.modjoin = room.modjoin;
 			Rooms.global.writeChatRoomData();
 		}
-		if (!room.modchat) this.parse('/modchat ' + Config.groupsranking[1]);
+		if (target === 'sync' && !room.modchat) this.parse('/modchat ' + Config.groupsranking[1]);
 		if (!room.isPrivate) this.parse('/hiddenroom');
 	},
 	modjoinhelp: ["/modjoin [+|%|@|*|&|~|#|off] - Sets modjoin. Users lower than the specified rank can't join this room. Requires: # & ~",
@@ -336,4 +358,93 @@ exports.commands = {
 		}
 	},
 	capsfilterhelp: ["/capsfilter [on/off] - Toggles filtering messages in the room for EXCESSIVE CAPS. Requires # & ~"],
+
+	banwords: 'banword',
+	banword: {
+		add: function (target, room, user) {
+			if (!target || target === ' ') return this.parse('/help banword');
+			if (!this.can('declare', null, room)) return false;
+
+			if (!room.banwords) room.banwords = [];
+
+			// Most of the regex code is copied from the client. TODO: unify them?
+			let words = target.match(/[^,]+(,\d*}[^,]*)?/g).map(word => word.replace(/\n/g, '').trim());
+
+			for (let i = 0; i < words.length; i++) {
+				if (/[\\^$*+?()|{}[\]]/.test(words[i])) {
+					if (!user.can('makeroom')) return this.errorReply("Regex banwords are only allowed for leaders or above.");
+
+					try {
+						let test = new RegExp(words[i]); // eslint-disable-line no-unused-vars
+					} catch (e) {
+						return this.errorReply(e.message.substr(0, 28) === 'Invalid regular expression: ' ? e.message : 'Invalid regular expression: /' + words[i] + '/: ' + e.message);
+					}
+				}
+				if (room.banwords.indexOf(words[i]) > -1) {
+					return this.errorReply(words[i] + ' is already a banned phrase.');
+				}
+			}
+
+			room.banwords = room.banwords.concat(words);
+			room.banwordRegex = null;
+			if (words.length > 1) {
+				this.privateModCommand("(The banwords '" + words.join(', ') + "' were added by " + user.name + ".)");
+				this.sendReply("Banned phrases succesfully added. The list is currently: " + room.banwords.join(', '));
+			} else {
+				this.privateModCommand("(The banword '" + words[0] + "' was added by " + user.name + ".)");
+				this.sendReply("Banned phrase succesfully added. The list is currently: " + room.banwords.join(', '));
+			}
+
+			if (room.chatRoomData) {
+				room.chatRoomData.banwords = room.banwords;
+				Rooms.global.writeChatRoomData();
+			}
+		},
+
+		delete: function (target, room, user) {
+			if (!target) return this.parse('/help banword');
+			if (!this.can('declare', null, room)) return false;
+
+			if (!room.banwords) return this.errorReply("This room has no banned phrases.");
+
+			let words = target.match(/[^,]+(,\d*}[^,]*)?/g).map(word => word.replace(/\n/g, '').trim());
+
+			for (let i = 0; i < words.length; i++) {
+				let index = room.banwords.indexOf(words[i]);
+
+				if (index < 0) return this.errorReply(words[i] + " is not a banned phrase in this room.");
+
+				room.banwords.splice(index, 1);
+			}
+
+			room.banwordRegex = null;
+			if (words.length > 1) {
+				this.privateModCommand("(The banwords '" + words.join(', ') + "' were removed by " + user.name + ".)");
+				this.sendReply("Banned phrases succesfully deleted. The list is currently: " + room.banwords.join(', '));
+			} else {
+				this.privateModCommand("(The banword '" + words[0] + "' was removed by " + user.name + ".)");
+				this.sendReply("Banned phrase succesfully deleted. The list is currently: " + room.banwords.join(', '));
+			}
+
+			if (room.chatRoomData) {
+				room.chatRoomData.banwords = room.banwords;
+				Rooms.global.writeChatRoomData();
+			}
+		},
+
+		list: function (target, room, user) {
+			if (!this.can('ban', null, room)) return false;
+
+			if (!room.banwords) return this.sendReply("This room has no banned phrases.");
+
+			return this.sendReply("Banned phrases in room " + room.id + ": " + room.banwords.join(', '));
+		},
+
+		"": function (target, room, user) {
+			return this.parse("/help banword");
+		},
+	},
+	banwordhelp: ["/banword add [words] - Adds the comma-separated list of phrases (& or ~ can also input regex) to the banword list of the current room. Requires: # & ~",
+					"/banword delete [words] - Removes the comma-separated list of phrases from the banword list. Requires: # & ~",
+					"/banword list - Shows the list of banned words in the current room. Requires: @ * # & ~"],
 };

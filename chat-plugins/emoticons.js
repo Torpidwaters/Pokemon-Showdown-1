@@ -33,7 +33,7 @@ function saveEmoticons() {
 	emoteRegex = new RegExp('(' + emoteRegex.join('|') + ')', 'g');
 }
 
-function parseEmoticons(user, message, room) {
+function parseEmoticons(message) {
 	if (emoteRegex.test(message)) {
 		message = Wisp.parseMessage(message).replace(emoteRegex, function (match) {
 			return '<img src="' + emoticons[match] + '" title="' + match + '" height="40" width="40">';

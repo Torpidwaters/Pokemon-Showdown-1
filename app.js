@@ -130,6 +130,8 @@ global.Wisp = {};
 
 global.CommandParser = require('./command-parser');
 
+global.Messages = require('./messages');
+
 global.Simulator = require('./simulator');
 
 global.Tournaments = require('./tournaments');
