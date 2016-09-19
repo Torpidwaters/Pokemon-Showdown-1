@@ -1132,8 +1132,8 @@ exports.commands = {
 Object.assign(Wisp, {
 	hashColor: function (name) {
 		name = toId(name);
-		if (mainColors[name]) name = mainColors[name];
 		if (Wisp.customColors[name]) return Wisp.customColors[name];
+		if (mainColors[name]) name = mainColors[name];
 		if (colorCache[name]) return colorCache[name];
 
 		let hash = MD5(name);
