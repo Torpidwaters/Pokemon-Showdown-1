@@ -91,7 +91,11 @@ exports.commands = {
 			if (parts.length !== 3) return this.errorReply("Correct command: `/badges transfer, userfrom, userto`");
 			let userFrom = toId(parts[1].trim());
 			let userTo = toId(parts[2].trim());
+			targetUser = Users.get(userFrom);
+			if (!targetUser || !targetUser.connected) return this.errorReply("The user is not online.");
 			if (!Db('userBadges').has(userFrom)) return this.errorReply("This user doesn't have any badges.");
+			let alts = Object.keys(targetUser.prevNames);
+			if (!alts.some(a => a === userTo)) return this.errorReply("These two accounts are not alts of the same user.");
 			let userToBadges = Db('userBadges').get(userFrom);
 			Db('userBadges').set(toId(userFrom), []);
 			Db('userBadges').set(toId(userTo), userToBadges);
