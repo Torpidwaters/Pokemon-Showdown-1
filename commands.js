@@ -1233,7 +1233,7 @@ exports.commands = {
 			return this.privateModCommand("(" + name + " would be banned by " + user.name + problem + ".)");
 		}
 
-		if (targetUser.confirmed && room.isPrivate !== true) {
+		if (targetUser.confirmed && room.isPrivate !== true && !room.isPersonal) {
 			Monitor.log("[CrisisMonitor] Confirmed user " + targetUser.name + (targetUser.confirmed !== targetUser.userid ? " (" + targetUser.confirmed + ")" : "") + " was roombanned from " + room.id + " by " + user.name + ", and should probably be demoted.");
 		}
 
@@ -1283,7 +1283,7 @@ exports.commands = {
 		let name = Punishments.roomUnban(room, target);
 
 		if (name) {
-			this.addModCommand("" + name + " was unbanned by " + user.name + ".");
+			this.addModCommand("" + name + " was unbanned from " + room.title + " by " + user.name + ".");
 			if (!room.isPrivate && room.chatRoomData) {
 				this.globalModlog("UNROOMBAN", name, " by " + user.name);
 			}
