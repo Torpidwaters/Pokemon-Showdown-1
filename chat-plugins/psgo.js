@@ -191,7 +191,7 @@ function claimPackPopup(user, message) {
 	let count = 0;
 	for (let u in claimPacks) {
 		if (count === 0) output += '<tr>';
-		output += '<td><button name="send" value="/' + cmd + ' ' + toId(shopPacks[u]) + '">' + Tools.escapeHTML(claimPacks[u]) + '</button></td>';
+		output += '<td><button name="send" value="/' + cmd + ' ' + toId(claimPacks[u]) + '">' + Tools.escapeHTML(claimPacks[u]) + '</button></td>';
 		count++;
 		if (count >= 5) {
 			output += '</tr>';
