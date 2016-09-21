@@ -123,7 +123,7 @@ exports.commands = {
 		Wisp.writeCredits(targetUser, amount);
 		this.sendReply(Tools.escapeHTML(targetUser) + " has received " + amount + ((amount === 1) ? " credits." : " credits."));
 		logTransaction(user.name + " has given " + amount + ((amount === 1) ? " credit " : " credits ") + " to " + targetUser);
-		Rooms.get('marketplace').add('|raw|' + (user.name + " has given " + amount + ((amount === 1) ? " credit " : " credits ") + " to " + targetUser + "."));
+		Rooms.get('marketplace').add('|html|<span style="color:red;">' + (user.name + " has given " + amount + ((amount === 1) ? " credit " : " credits ") + " to " + targetUser + ".</span>"));
 		if (Users.get(targetUser) && Users.get(targetUser).connected) {
 			Users.get(targetUser).popup("|modal||html|" + Wisp.nameColor(user.name, true) + " has given you " + amount + ((amount === 1) ? " credit " : " credits "));
 		}
@@ -149,7 +149,7 @@ exports.commands = {
 		Wisp.writeCredits(targetUser, -amount);
 		this.sendReply("You removed " + amount + ((amount === 1) ? " credit " : " credits ") + " from " + Tools.escapeHTML(targetUser));
 		logTransaction(user.name + " has taken " + amount + ((amount === 1) ? " credit " : " credits ") + " from " + targetUser);
-		Rooms.get('marketplace').add('|raw|' + user.name + " has taken " + amount + ((amount === 1) ? " credit " : " credits ") + " from " + targetUser + ".");
+		Rooms.get('marketplace').add('|html|<span style="color: red;">' + user.name + " has taken " + amount + ((amount === 1) ? " credit " : " credits ") + " from " + targetUser + ".</span>");
 		if (Users.get(targetUser) && Users.get(targetUser).connected) {
 			Users.get(targetUser).popup("|modal||html|" + Wisp.nameColor(user.name, true) + " has taken " + amount + ((amount === 1) ? " credit " : " credits from you."));
 		}
