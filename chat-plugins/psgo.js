@@ -628,31 +628,32 @@ exports.commands = {
 		if (!Users.userPacks[user.userid] || Users.userPacks[user.userid].length < 1) return this.sendReply("You have no packs.");
 		if (!Users.userPacks[user.userid].includes(packId)) return this.sendReply("You do not have this pack.");
 
+		let card = [], rarity = [];
 		for (let i = 0; i < 3; i++) {
 			let rand = Math.floor(Math.random() * 100) + 1;
-			let rarity;
 
-			while (!sortedCards[rarity] || !sortedCards[rarity][packId]) {
-				if (rand <= 33) rarity = 'common';
-				if (rand >= 34 && rand <= 62) rarity = 'uncommon';
-				if (rand >= 63 && rand <= 79) rarity = 'rare';
-				if (rand >= 80 && rand <= 90) rarity = 'epic';
-				if (rand >= 91 && rand <= 98) rarity = 'legendary';
-				if (rand >= 99) rarity = 'mythic';
+			while (!sortedCards[rarity[i]] || !sortedCards[rarity[i]][packId]) {
+				if (rand <= 33) rarity[i] = 'common';
+				if (rand >= 34 && rand <= 62) rarity[i] = 'uncommon';
+				if (rand >= 63 && rand <= 79) rarity[i] = 'rare';
+				if (rand >= 80 && rand <= 90) rarity[i] = 'epic';
+				if (rand >= 91 && rand <= 98) rarity[i] = 'legendary';
+				if (rand >= 99) rarity[i] = 'mythic';
 				rand = Math.floor(Math.random() * 100) + 1;
 			}
 
 
-			let card = cardData[sortedCards[rarity][packId][Math.floor(Math.random() * sortedCards[rarity][packId].length)]];
-			addCard(user.userid, card.id);
-
-			this.sendReplyBox(Wisp.nameColor(user.name, true) + ' got <font color="' + colors[rarity] + '">' + card.rarity + '</font> ' +
-				'<button name="send" value="/card ' + card.id + '"><b>' + Tools.escapeHTML(card.name) + '</b></button> from a ' +
-				'<button name="send" value="/buypack ' + packId + '">' + Tools.escapeHTML(packs[packId]) + ' Pack</button>.'
-			);
+			card[i] = cardData[sortedCards[rarity[i]][packId][Math.floor(Math.random() * sortedCards[rarity[i]][packId].length)]];
+			addCard(user.userid, card[i].id);
 		}
 		Users.userPacks[user.userid].splice(Users.userPacks[user.userid].indexOf(packId), 1);
-		user.send('|uhtmlchange|packs-' + user.userid + '|' + showPacks(user.userid));
+		let buttonStyle = 'background:none!important; border:none; padding:0!important; font: inherit;';
+		this.sendReplyBox('<p style="text-align: center; width: 84%">' + Wisp.nameColor(user.name, true) + ' received <b style="color: ' + colors[rarity[0]] + '">' + Tools.escapeHTML(card[0].name) +
+			'</b>, <b style="color: ' + colors[rarity[1]] + '">' + Tools.escapeHTML(card[1].name) + '</b>, and <b style="color: ' + colors[rarity[2]] + '">' + Tools.escapeHTML(card[2].name) +
+			'</b> from a <b>' + Tools.escapeHTML(packs[packId]) + '</b> Pack.</p><div style="clear: both"><div style="float: left; width: 33%"><button style="' + buttonStyle +
+			'" name="send" value="/card ' + card[0].id + '"><img src="' + card[0].image + '" width="160" height="220"></button></div><div style="float: left; width: 33%;"><button style="' +
+			buttonStyle + '" name="send" value="/card ' + card[1].id + '"><img src="' + card[1].image + '" width="160" height="220"></button></div><div style="float: left; width: 33%;"><button style="' +
+			buttonStyle + '" name="send" value="/card ' + card[2].id + '"><img src="' + card[2].image + '" width="160" height="220"></button></div></div><div style="clear: both"></div>');
 	},
 	openpackhelp: ["/openpack [pack] - Opens a pack after you buy one."],
 
