@@ -908,8 +908,8 @@ exports.commands = {
 		const divEnd = "</div>";
 		const definePopup = "|wide||html|<center><b>CardSearch</b></center><br />";
 		const generalMenu = "<center>" +
-			'<button name="send" value="/searchcard letter" style=\"background-color:aliceblue;height:30px\">Alphabetical</button>&nbsp;&nbsp;' + // alphabetical
-			'<button name="send" value="/searchcard category" style=\"background-color:aliceblue;height:30px\">Categories</button>&nbsp;&nbsp;' + // category
+			'<button name="send" value="/searchcard letter" style="background-color:aliceblue;height:30px">Alphabetical</button>&nbsp;&nbsp;' + // alphabetical
+			'<button name="send" value="/searchcard category" style="background-color:aliceblue;height:30px">Categories</button>&nbsp;&nbsp;' + // category
 			'</center><br />';
 		if (!target) {
 			return user.popup(definePopup + generalMenu);
